@@ -12,10 +12,20 @@ store = Store()
 class Ancestry:
     """
     Ancestry of people to simulate
+
+    Class to create a skeleton graph
+
+    Changes:
+
+    - now we will have a dictionary instead of networkx graph.
+    - The keys to the dictionary will be (node_id_x, node_id_y) : relation
+    - We will also maintain a separate dictionary for mapping of node_id to details
+    - relation keyword to be taken from rules_store
     """
     def __init__(self, max_levels=1, min_child=1, max_child=3, p_marry=1,
                  relationship_type={'SO':1,'child':2}, taken_names=None):
-        self.family = nx.DiGraph()
+        self.family = {} # dict (node_id_a, node_id_b) : rel
+        self.family_data = {} # dict to hold node_id details
         self.max_levels = max_levels
         self.min_child = min_child
         self.max_child = max_child
@@ -68,7 +78,7 @@ class Ancestry:
         :param num: default 1.
         :return: list of node ids added, new node id
         """
-        node_ct = self.node_ct
+        node_id = self.node_ct
         added_nodes = []
         for x in range(num):
             if num > 1:
@@ -79,11 +89,11 @@ class Ancestry:
                 name = names.get_first_name(gender=gender)
             self.taken_names.add(name)
             node = Actor(
-                name=name, gender=gender, node_id=node_ct)
+                name=name, gender=gender, node_id=node_id)
             added_nodes.append(node)
-            self.family.add_node(node_ct, data=node)
-            node_ct += 1
-        self.node_ct = node_ct
+            self.family_data[node_id] = node
+            node_id += 1
+        self.node_ct = node_id
         return added_nodes
 
     def make_relation(self, node_a, node_b, relation='SO'):
@@ -94,7 +104,11 @@ class Ancestry:
         :param relation: either SO->1, or child->2
         :return:
         """
-        self.family.add_edge(node_a.node_id, node_b.node_id, weight=self.relationship_type[relation])
+        node_a_id = node_a.node_id
+        node_b_id = node_b.node_id
+        rel_tuple = (node_a_id, node_b_id)
+        if rel_tuple not in self.family:
+            self.family[rel_tuple] = relation
 
     def toggle_gender(self, node):
         if node.gender == 'male':
@@ -104,6 +118,6 @@ class Ancestry:
 
 
 if __name__=='__main__':
-    pdb.set_trace()
+    #pdb.set_trace()
     anc = Ancestry()
     anc.simulate()
