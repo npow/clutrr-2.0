@@ -6,6 +6,7 @@ class Store:
         self.base_path = os.path.dirname(os.path.realpath(__file__)).split('store')[0]
         self.attribute_store = json.load(open(os.path.join(self.base_path, 'store', 'attribute_store.json')))
         self.relations_store = json.load(open(os.path.join(self.base_path, 'store', 'relations_store.json')))
+        self.rules_store = json.load(open(os.path.join(self.base_path, 'store', 'rules_store.json')))
 
         ## Relationship type has basic values 0,1 and 2, whereas the
         ## rest should be inferred. Like, child + child = 4 = grand

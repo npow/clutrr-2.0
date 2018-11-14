@@ -1,0 +1,35 @@
+{
+  "child": {
+    "child": "grand",
+    "inv-child": "SO",
+    "SO": "in-law",
+    "sibling": "child",
+    "inv-grand": "inv-child"
+  },
+  "inv-child": {
+    "child": "sibling",
+    "inv-child": "grand",
+    "SO": "inv-child",
+    "sibling": "inv-un",
+    "grand": "child"
+  },
+  "SO":{
+    "child": "child",
+    "inv-child": "inv-in-law",
+    "sibling": "sibling-in-law",
+    "grand": "grand"
+  },
+  "sibling": {
+    "child": "un",
+    "inv-child": "inv-child",
+    "SO": "sibling-in-law",
+    "sibling": "sibling",
+    "inv-grand": "inv-grand"
+  },
+  "grand": {
+    "inv-child": "child",
+    "sibling": "grand",
+    "inv-grand": "SO",
+    "inv-un": "child"
+  }
+}

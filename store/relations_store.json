@@ -11,7 +11,7 @@
       "e_2 is e_1's daughter"
     ]
   },
-  "child-rev": {
+  "inv-child": {
     "male": [
       "e_2 is the father of e_1",
       "e_2 is e_1's father"
@@ -57,7 +57,7 @@
       "e_2 is e_1's granddaughter"
     ]
   },
-  "grand-rev":{
+  "inv-grand":{
     "male": [
       "e_2 is the grandfather of e_1",
       "e_2 is e_1's grandfather"
@@ -67,7 +67,7 @@
       "e_2 is e_1's grandmother"
     ]
   },
-  "in-laws": {
+  "in-law": {
     "male": [
       "e_2 is the son-in-law of e_1",
       "e_1 has a son-in-law who is e_2"
@@ -77,7 +77,7 @@
       "e_1 has a daughter-in-law who is e_2"
     ]
   },
-  "in-laws-rev": {
+  "inv-in-law": {
     "male": [
       "e_2 is the father-in-law of e_1",
       "e_2 is e_1's father-in-law"
@@ -87,7 +87,36 @@
       "e_2 is e_1's mother-in-law"
     ]
   },
-
+  "sibling-in-law" : {
+    "male": [
+      "e_2 is the brother-in-law of e_1",
+      "e_2 is e_1's brother-in-law"
+    ],
+    "female": [
+      "e_2 is the sister-in-law of e_1",
+      "e_2 is e_1's sister-in-law"
+    ]
+  },
+  "un" : {
+    "male": [
+      "e_2 is the nephew of e_1",
+      "e_2 is e_1's nephew"
+    ],
+    "female": [
+      "e_2 is the neice of e_1",
+      "e_2 is e_1's neice"
+    ]
+  },
+  "inv-un" : {
+    "male": [
+      "e_2 is the uncle of e_1",
+      "e_2 is e_1's uncle"
+    ],
+    "female": [
+      "e_2 is the uncle of e_1",
+      "e_2 is e_1's uncle"
+    ]
+  },
   "no-relation": {
     "male": [
       "e_1 has no-relation with e_2",
@@ -98,6 +127,7 @@
       "e_2 has no-relation with e_1"
     ]
   },
+
   "_relation_keywords" : ["son","daughter","father","mother","husband","wife","brother","sister","grandson","granddaughter","grandfather", "grandmother","son-in-law","daughter-in-law","father-in-law","mother-in-law"]
 }
 
