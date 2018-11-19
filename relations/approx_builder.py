@@ -8,6 +8,8 @@ from utils.utils import pairwise
 import copy
 from actors.ancestry import Ancestry
 from store.store import Store
+import json
+import pickle
 
 store = Store()
 
@@ -97,39 +99,53 @@ class RelationBuilder:
         story = ''
         while(len(story) == 0):
             edge = random.choice(list(available_edges))
-            story = self.derive(edge, k=num_rel-1)
+            story = self.derive(edge, [], k=num_rel-1)
+            self._test_story(story)
+            story = [self.stringify(s) for s in story]
+            story = ''.join(story)
         target = self.stringify(edge)
         return (story, target)
 
-    def derive(self, edge, k=1):
+    def derive(self, edge, ignore_edges, k=1):
         self.invert_rel()
         # for each node in graph, check if (edge[0],node) and (node, edge[1]) exists.
         found = False
         for node_id in self.anc.family_data.keys():
             var_l = (edge[0], node_id)
             var_r = (node_id, edge[1])
-            if var_l == edge or var_r == edge:
+            if var_l == edge or var_r == edge or var_l in ignore_edges or var_r in ignore_edges:
                 continue
             if var_l in self.anc.family and var_r in self.anc.family:
                 found = [var_l, var_r]
                 break
-        k = k-1
+        one_step_story = [var_l, var_r]
+        k = k - 1
         if found:
             if k==0:
-                return self.stringify(var_l) + self.stringify(var_r)
+                return one_step_story
             else:
-                l_story = self.derive(var_l,k)
-                r_story = self.derive(var_r,k)
-                if len(l_story) == 0 and len(r_story) == 0:
-                    return self.stringify(var_l) + self.stringify(var_r)
-                elif len(l_story) == 0 and len(r_story) > 0:
-                    return self.stringify(var_l) + r_story
-                elif len(r_story) == 0 and len(l_story) > 0:
-                    return l_story + self.stringify(var_r)
-                else:
-                    return max(l_story, r_story)
+                # we could expand the current variables either in left or right direction
+                # but controlling for the depth in both directions is hard
+                # so for now we would unroll only in left direction
+                ignore_edges.append(edge)
+                l_story = self.derive(var_l, ignore_edges, k)
+                #ignore_edges.extend(l_story)
+                #r_story = self.derive(var_r, ignore_edges, k)
+                l_step_story = copy.copy(l_story)
+                l_step_story.extend([var_r])
+                #r_step_story = [var_l]
+                #r_step_story.extend(r_story)
+                #if len(l_story) == 0 and len(r_story) == 0:
+                #    return one_step_story
+                #elif len(l_story) == 0 and len(r_story) > 0:
+                #    return l_step_story
+                #elif len(r_story) == 0 and len(l_story) > 0:
+                #    return r_step_story
+                #else:
+                #    return max(l_step_story, r_step_story, key=len)
+                return l_step_story
         else:
-            return ''
+            return []
 
     def stringify(self, edge):
         """
@@ -153,9 +169,19 @@ class RelationBuilder:
         text = text.replace('e_2', node_b_name)
         return text + '. '
 
+    def _test_story(self, story):
+        """
+        Given a list of edges of the story, test whether they are logically valid
+        (x,y),(y,z) is valid, (x,y),(x,z) is not
+        :param story: list of tuples
+        :return:
+        """
+        for e_i in range(len(story) - 1):
+            assert story[e_i][-1] == story[e_i + 1][0]
+
 
 if __name__=='__main__':
-    anc = Ancestry(max_levels=3, min_child=3, max_child=3)
+    anc = Ancestry(max_levels=2, min_child=2, max_child=2)
     anc.simulate()
     rb = RelationBuilder(anc)
     print(rb.anc.family)
@@ -164,7 +190,8 @@ if __name__=='__main__':
             if i!=j:
                 rb.almost_complete((i,j))
     print(rb.anc.family)
-    story, target = rb.build(num_rel=2)
+    pickle.dump(rb, open('rb.pkl','wb'))
+    story, target = rb.build(num_rel=3)
     print(story)
     print(target)
 
