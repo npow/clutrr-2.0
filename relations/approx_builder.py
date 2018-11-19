@@ -27,57 +27,75 @@ class RelationBuilder:
         - find the x which satifies both s.t x =/= {n1, n2}
         - either add to story
         - or recurse
+
+    Changes:
+        - Relation types are "family","work", etc (as given in ``relation_types``
+        - When applying the rules, make sure to confirm to these types
     """
 
     def __init__(self, anc, boundary=True):
         self.anc = anc
         self.rules = store.rules_store
+        self.comp_rules = self.rules['compositional']
+        self.inv_rules = self.rules['inverse-equivalence']
+        self.sym_rules = self.rules['symmetric']
+        self.eq_rules = self.rules['equivalence']
+        self.relation_types = self.rules['relation_types']
         self.relations_obj = store.relations_store
         self.boundary = boundary
-        # extract all possible relations from the store
-        self.all_rel = set()
-        for k,v in self.rules.items():
-            self.all_rel.add(k)
-            for c,p in v.items():
-                self.all_rel.add(c)
-                self.all_rel.add(p)
         # save the edges which are used already
         self.done_edges = set()
 
 
-    def invert_rel(self):
+    def invert_rel(self, rel_type='family'):
         """
         Invert the relations
         :return:
         """
+        if rel_type not in self.inv_rules:
+            return None
         inv_family = copy.deepcopy(self.anc.family)
         for edge, rel in self.anc.family.items():
-            inv_rel = 'inv-' + rel
-            if inv_rel in self.all_rel:
-                inv_family[(edge[1], edge[0])] = inv_rel
+            relation = rel[rel_type]
+            if relation in self.inv_rules[rel_type]:
+                inv_rel = self.inv_rules[rel_type][relation]
+                if (edge[1], edge[0]) not in inv_family:
+                    inv_family[(edge[1], edge[0])] = {}
+                inv_family[(edge[1], edge[0])][rel_type] = inv_rel
         self.anc.family = inv_family
 
-    def almost_complete(self,edge):
+    def equivalence_rel(self, rel_type='family'):
         """
-        Build an almost complete graph by iteratively applying the rules
-        Recursively apply rules and invert
+        Use equivalence relations
         :return:
         """
-        self.invert_rel()
-        # left edges
-        keys = list(self.anc.family.keys())
-        edge_1 = [self.construct(e, edge) for e in keys if e[1] == edge[0]]
-        edge_2 = [self.construct(edge, e) for e in keys if e[0] == edge[1]]
-        edge_1 = list(filter(None.__ne__, edge_1))
-        edge_2 = list(filter(None.__ne__, edge_2))
-        for e in edge_1:
-            self.almost_complete(e)
-        for e in edge_2:
-            self.almost_complete(e)
+        if rel_type not in self.eq_rules:
+            return None
+        n_family = copy.deepcopy(self.anc.family)
+        for edge, rel in self.anc.family.items():
+            relation = rel[rel_type]
+            if relation in self.eq_rules[rel_type]:
+                eq_rel = self.eq_rules[rel_type][relation]
+                n_family[(edge[0],edge[1])][rel_type] = eq_rel
+
+    def symmetry_rel(self, rel_type='family'):
+        """
+        Use equivalence relations
+        :return:
+        """
+        if rel_type not in self.sym_rules:
+            return None
+        n_family = copy.deepcopy(self.anc.family)
+        for edge, rel in self.anc.family.items():
+            relation = rel[rel_type]
+            if relation in self.sym_rules[rel_type]:
+                sym_rel = self.sym_rules[rel_type][relation]
+                if (edge[1], edge[0]) not in n_family:
+                    n_family[(edge[1], edge[0])] = {}
+                n_family[(edge[1], edge[0])][rel_type] = sym_rel
 
 
-
-    def construct(self, edge_1, edge_2):
+    def compose_rel(self, edge_1, edge_2, rel_type='family'):
         # dont allow self edges
         if edge_1[0] == edge_1[1]:
             return None
@@ -85,12 +103,38 @@ class RelationBuilder:
             return None
         if edge_1[1] == edge_2[0] and edge_1[0] != edge_2[1]:
             n_edge = (edge_1[0], edge_2[1])
-            if n_edge not in self.anc.family and (edge_1 in self.anc.family and self.anc.family[edge_1] in self.rules):
-                if edge_2 in self.anc.family and self.anc.family[edge_2] in self.rules[self.anc.family[edge_1]]:
-                    n_rel = self.rules[self.anc.family[edge_1]][self.anc.family[edge_2]]
-                    self.anc.family[n_edge] = n_rel
+            if n_edge not in self.anc.family and \
+                    (edge_1 in self.anc.family and
+                     self.anc.family[edge_1][rel_type] in self.comp_rules[rel_type]):
+                if edge_2 in self.anc.family and \
+                        self.anc.family[edge_2][rel_type] in self.comp_rules[rel_type][self.anc.family[edge_1][rel_type]]:
+                    n_rel = self.comp_rules[rel_type][self.anc.family[edge_1][rel_type]][self.anc.family[edge_2][rel_type]]
+                    if n_edge not in self.anc.family:
+                        self.anc.family[n_edge] = {}
+                    self.anc.family[n_edge][rel_type] = n_rel
                     return n_edge
         return None
+
+    def almost_complete(self,edge):
+        """
+        Build an almost complete graph by iteratively applying the rules
+        Recursively apply rules and invert
+        :return:
+        """
+        # apply symmetric, equivalence and inverse rules
+        self.invert_rel()
+        self.equivalence_rel()
+        self.symmetry_rel()
+        # apply compositional rules
+        keys = list(self.anc.family.keys())
+        edge_1 = [self.compose_rel(e, edge) for e in keys if e[1] == edge[0]]
+        edge_2 = [self.compose_rel(edge, e) for e in keys if e[0] == edge[1]]
+        edge_1 = list(filter(None.__ne__, edge_1))
+        edge_2 = list(filter(None.__ne__, edge_2))
+        for e in edge_1:
+            self.almost_complete(e)
+        for e in edge_2:
+            self.almost_complete(e)
 
 
 
@@ -101,8 +145,10 @@ class RelationBuilder:
             edge = random.choice(list(available_edges))
             story = self.derive(edge, [], k=num_rel-1)
             self._test_story(story)
+            print(story)
             story = [self.stringify(s) for s in story]
             story = ''.join(story)
+        print(edge)
         target = self.stringify(edge)
         return (story, target)
 
@@ -147,7 +193,7 @@ class RelationBuilder:
         else:
             return []
 
-    def stringify(self, edge):
+    def stringify(self, edge, rel_type='family'):
         """
         Build story string from the edge
         :param edge: tuple
@@ -156,7 +202,7 @@ class RelationBuilder:
         # get node attributes
         node_a_attr = self.anc.family_data[edge[0]]
         node_b_attr = self.anc.family_data[edge[1]]
-        relation = self.anc.family[edge]
+        relation = self.anc.family[edge][rel_type]
         placeholders = self.relations_obj[relation][node_b_attr.gender]
         placeholder = random.choice(placeholders)
         node_a_name = node_a_attr.name

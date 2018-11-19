@@ -1,35 +1,56 @@
 {
-  "child": {
-    "child": "grand",
-    "inv-child": "SO",
-    "SO": "in-law",
-    "sibling": "child",
-    "inv-grand": "inv-child"
+  "symmetric":{
+    "family": {
+      "sibling": "sibling"
+    }
   },
-  "inv-child": {
-    "child": "sibling",
-    "inv-child": "grand",
-    "SO": "inv-child",
-    "sibling": "inv-un",
-    "grand": "child"
+  "equivalence":{
+    "work": {
+      "manager": "coworker"
+    }
   },
-  "SO":{
-    "child": "child",
-    "inv-child": "inv-in-law",
-    "sibling": "sibling-in-law",
-    "grand": "grand"
+  "inverse-equivalence":{
+    "family": {
+      "child": "inv-child",
+      "grand": "inv-grand",
+      "un": "inv-un",
+      "in-law": "inv-in-law"
+    }
   },
-  "sibling": {
-    "child": "un",
-    "inv-child": "inv-child",
-    "SO": "sibling-in-law",
-    "sibling": "sibling",
-    "inv-grand": "inv-grand"
+  "compositional": {
+    "family": {
+      "child": {
+        "child": "grand",
+        "inv-child": "SO",
+        "SO": "in-law",
+        "sibling": "child",
+        "inv-grand": "inv-child"
+      },
+      "inv-child": {
+        "child": "sibling",
+        "inv-child": "inv-grand",
+        "SO": "inv-child",
+        "grand": "child"
+      },
+      "SO": {
+        "child": "child",
+        "inv-child": "inv-in-law",
+        "sibling": "sibling-in-law",
+        "grand": "grand"
+      },
+      "sibling": {
+        "inv-child": "inv-child",
+        "SO": "sibling-in-law",
+        "sibling": "sibling",
+        "inv-grand": "inv-grand"
+      },
+      "grand": {
+        "inv-child": "child",
+        "sibling": "grand",
+        "inv-grand": "SO",
+        "inv-un": "child"
+      }
+    }
   },
-  "grand": {
-    "inv-child": "child",
-    "sibling": "grand",
-    "inv-grand": "SO",
-    "inv-un": "child"
-  }
+  "relation_types" : ["family", "work"]
 }

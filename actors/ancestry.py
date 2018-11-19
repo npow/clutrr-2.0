@@ -18,13 +18,17 @@ class Ancestry:
     Changes:
 
     - now we will have a dictionary instead of networkx graph.
-    - The keys to the dictionary will be (node_id_x, node_id_y) : relation
+    - The keys to the dictionary will be (node_id_x, node_id_y) : a dict of relations
+        - a dict of relations will ensure the use of family, work, etc different relations logically seperate
+        - key of the relations:
+            - "family" --> family type relations
+            - "work"   --> work related relations
     - We will also maintain a separate dictionary for mapping of node_id to details
     - relation keyword to be taken from rules_store
     """
     def __init__(self, max_levels=1, min_child=1, max_child=3, p_marry=1,
                  relationship_type={'SO':1,'child':2}, taken_names=None):
-        self.family = {} # dict (node_id_a, node_id_b) : rel
+        self.family = {} # dict (node_id_a, node_id_b) : rel dict
         self.family_data = {} # dict to hold node_id details
         self.max_levels = max_levels
         self.min_child = min_child
@@ -108,7 +112,7 @@ class Ancestry:
         node_b_id = node_b.node_id
         rel_tuple = (node_a_id, node_b_id)
         if rel_tuple not in self.family:
-            self.family[rel_tuple] = relation
+            self.family[rel_tuple] = {'family': relation}
 
     def toggle_gender(self, node):
         if node.gender == 'male':
