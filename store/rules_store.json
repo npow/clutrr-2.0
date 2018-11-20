@@ -21,30 +21,22 @@
     "family": {
       "child": {
         "child": "grand",
-        "SO": "in-law",
-        "sibling": "child",
-        "inv-grand": "inv-child"
+        "SO": "in-law"
       },
       "inv-child": {
         "child": "sibling",
-        "inv-child": "inv-grand",
-        "SO": "inv-child",
-        "grand": "child"
+        "inv-child": "inv-grand"
       },
       "SO": {
-        "child": "child",
         "inv-child": "inv-in-law",
         "grand": "grand"
       },
       "sibling": {
-        "inv-child": "inv-child",
         "sibling": "sibling",
         "inv-grand": "inv-grand"
       },
       "grand": {
-        "inv-child": "child",
-        "sibling": "grand",
-        "inv-un": "child"
+        "sibling": "grand"
       }
     }
   },

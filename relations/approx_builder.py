@@ -112,6 +112,7 @@ class RelationBuilder:
                     if n_edge not in self.anc.family:
                         self.anc.family[n_edge] = {}
                     self.anc.family[n_edge][rel_type] = n_rel
+                    print(edge_1, edge_2, n_rel)
                     return n_edge
         return None
 
@@ -145,6 +146,8 @@ class RelationBuilder:
             edge = random.choice(list(available_edges))
             story = self.derive(edge, [], k=num_rel-1)
             self._test_story(story)
+            assert story[0][0] == edge[0]
+            assert story[-1][-1] == edge[-1]
             print(story)
             story = [self.stringify(s) for s in story]
             story = ''.join(story)
@@ -163,6 +166,7 @@ class RelationBuilder:
                 continue
             if var_l in self.anc.family and var_r in self.anc.family:
                 found = [var_l, var_r]
+                print(edge, (var_l, var_r))
                 break
         one_step_story = [var_l, var_r]
         k = k - 1
@@ -191,7 +195,7 @@ class RelationBuilder:
                 #    return max(l_step_story, r_step_story, key=len)
                 return l_step_story
         else:
-            return []
+            return [edge]
 
     def stringify(self, edge, rel_type='family'):
         """
