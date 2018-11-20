@@ -21,7 +21,6 @@
     "family": {
       "child": {
         "child": "grand",
-        "inv-child": "SO",
         "SO": "in-law",
         "sibling": "child",
         "inv-grand": "inv-child"
@@ -35,19 +34,16 @@
       "SO": {
         "child": "child",
         "inv-child": "inv-in-law",
-        "sibling": "sibling-in-law",
         "grand": "grand"
       },
       "sibling": {
         "inv-child": "inv-child",
-        "SO": "sibling-in-law",
         "sibling": "sibling",
         "inv-grand": "inv-grand"
       },
       "grand": {
         "inv-child": "child",
         "sibling": "grand",
-        "inv-grand": "SO",
         "inv-un": "child"
       }
     }
