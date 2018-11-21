@@ -38,6 +38,11 @@
       "grand": {
         "sibling": "grand"
       }
+    },
+    "work": {
+      "works_at" : {
+        "manager": "subordinate"
+      }
     }
   },
   "relation_types" : ["family", "work"]
