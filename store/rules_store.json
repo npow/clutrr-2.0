@@ -1,7 +1,8 @@
 {
   "symmetric":{
     "family": {
-      "sibling": "sibling"
+      "sibling": "sibling",
+      "SO": "SO"
     }
   },
   "equivalence":{
@@ -21,7 +22,10 @@
     "family": {
       "child": {
         "child": "grand",
-        "SO": "in-law"
+        "SO": "in-law",
+        "sibling": "child",
+        "inv-child": "sibling",
+        "inv-grand": "inv-child"
       },
       "inv-child": {
         "child": "sibling",

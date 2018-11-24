@@ -10,6 +10,7 @@ from actors.ancestry import Ancestry
 from store.store import Store
 import json
 import pickle
+import uuid
 
 store = Store()
 
@@ -41,11 +42,37 @@ class RelationBuilder:
         self.sym_rules = self.rules['symmetric']
         self.eq_rules = self.rules['equivalence']
         self.relation_types = self.rules['relation_types']
+        self.comp_rules_inv = self._invert_rule(self.rules['compositional'])
+        self.inv_rules_inv = self._invert_rule(self.rules['inverse-equivalence'])
+        self.sym_rules_inv = self._invert_rule(self.rules['symmetric'])
+        self.eq_rules_inv = self._invert_rule(self.rules['equivalence'])
         self.relations_obj = store.relations_store
         self.boundary = boundary
+        self.puzzles = {}
+        self.puzzle_ct = 0
         # save the edges which are used already
         self.done_edges = set()
 
+    def _invert_rule(self, rule):
+        """
+        Given a rule, invert it to be RHS:LHS
+        :param rule:
+        :return:
+        """
+        inv_rules = {}
+        for tp, rules in rule.items():
+            inv_rules[tp] = {}
+            for key, val in rules.items():
+                if type(val) == str:
+                    if val not in inv_rules[tp]:
+                        inv_rules[tp][val] = []
+                    inv_rules[tp][val].append(key)
+                else:
+                    for k2, v2 in val.items():
+                        if v2 not in inv_rules[tp]:
+                            inv_rules[tp][v2] = []
+                        inv_rules[tp][v2].append((key, k2))
+        return inv_rules
 
     def invert_rel(self, rel_type='family'):
         """
@@ -77,6 +104,7 @@ class RelationBuilder:
             if relation in self.eq_rules[rel_type]:
                 eq_rel = self.eq_rules[rel_type][relation]
                 n_family[(edge[0],edge[1])][rel_type] = eq_rel
+        self.anc.family = n_family
 
     def symmetry_rel(self, rel_type='family'):
         """
@@ -93,6 +121,7 @@ class RelationBuilder:
                 if (edge[1], edge[0]) not in n_family:
                     n_family[(edge[1], edge[0])] = {}
                 n_family[(edge[1], edge[0])][rel_type] = sym_rel
+        self.anc.family = n_family
 
 
     def compose_rel(self, edge_1, edge_2, rel_type='family'):
@@ -145,103 +174,116 @@ class RelationBuilder:
         for e in edge_2:
             self.almost_complete(e)
 
-    def build(self, num_rel=2, fact_type=0):
+    def build(self, num_rel=2):
         """
-        Build the story and target. Select an edge from the graph and `derive` the story from
-        the given edge.
+        Build the stories and targets for the current family configuration
+        and save it in memory. This will be used later to post-process, i.e add noise
         :param num_rel:
-        :param fact_type: Choose the type of story to build.
-            - 0 : Only provide the required relevant facts
+        :return:
+        """
+        available_edges = set([k for k, v in self.anc.family.items()]) - self.done_edges
+        for edge in available_edges:
+            story, proof_trace = self.derive([edge], k=num_rel-1)
+            if len(story) == num_rel:
+                self.puzzles[self.puzzle_ct] = {
+                    'edge': edge,
+                    'story': story,
+                    'proof': proof_trace
+                }
+                self.puzzle_ct += 1
+
+    def add_facts(self):
+        """
+        For each stored puzzle, add different types of facts
             - 1 : Provide supporting facts. After creating the essential fact graph, expand on any
             k number of edges (randomly)
             - 2: Irrelevant facts: after creating the relevant fact graph, expand on an edge,
              but only provide dangling expansions
             - 3: Disconnected facts: along with relevant facts, provide a tree which is completely
-            disconnected
         :return:
         """
-        available_edges = set([k for k, v in self.anc.family.items()]) - self.done_edges
-        story = ''
-        while(len(story) == 0):
-            edge = random.choice(list(available_edges))
-            story = self.derive(edge, [], k=num_rel-1)
-            self._test_story(story)
-            assert story[0][0] == edge[0]
-            assert story[-1][-1] == edge[-1]
-            print('story', story)
-            if len(story) <= 0:
-                continue
-            ignore_edges = copy.copy(story)
-            ignore_edges.append(edge)
-            if fact_type == 1:
-                num_edges = random.choice(range(1, len(story)))
-                sampled_edges = random.sample(story, num_edges)
-                extra_story = []
-                for se in sampled_edges:
-                    ignore_edges.extend(extra_story)
-                    extra_story.extend(self.derive(se, ignore_edges=ignore_edges, k=1))
-                story.extend(extra_story)
-            elif fact_type == 2:
-                num_edges = random.choice(range(1, len(story)))
-                sampled_edge = random.choice(story)
-                extra_story = []
-                for i in range(num_edges):
-                    ignore_edges.extend(extra_story)
-                    pair = self.derive(sampled_edge, ignore_edges=ignore_edges, k=1)
-                    extra_story.append(pair[0])
-                    sampled_edge = pair[0]
-                story.extend(extra_story)
-            elif fact_type == 3:
-                nodes_story = set([y for x in list(story) for y in x])
-                nodes_not_in_story = set(self.anc.family_data.keys()) - nodes_story
-                possible_edges = [(x,y) for x,y in it.combinations(list(nodes_not_in_story), 2) if (x,y) in self.anc.family]
-                num_edges = random.choice(range(1, len(possible_edges)))
-                possible_edges = random.sample(possible_edges, num_edges)
-                story.extend(possible_edges)
-        print('final story', story)
-        story = [self.stringify(s) for s in story]
-        story = ''.join(story)
-        print(edge)
-        target = self.stringify(edge)
-        return (story, target)
+        for puzzle_id, puzzle in self.puzzles.items():
+            # Supporting facts
+            story = puzzle['story']
+            extra_story = []
+            for se in story:
+                e = self.expand(se)
+                if e:
+                    if puzzle['edge'] not in e:
+                        extra_story.extend(e)
+            self.puzzles[puzzle_id]['fact_1'] = extra_story
+            # Irrelevant facts
+            num_edges = len(story)
+            sampled_edge = random.choice(story)
+            extra_story = []
+            for i in range(num_edges):
+                tmp = sampled_edge
+                pair = self.expand(sampled_edge)
+                if pair:
+                    for e in pair:
+                        if e != puzzle['edge']:
+                            extra_story.append(e)
+                            sampled_edge = e
+                if tmp == sampled_edge:
+                    sampled_edge = random.choice(story)
+            self.puzzles[puzzle_id]['fact_2'] = extra_story
+            # Disconnected facts
+            nodes_story = set([y for x in list(story) for y in x])
+            nodes_not_in_story = set(self.anc.family_data.keys()) - nodes_story
+            possible_edges = [(x,y) for x,y in it.combinations(list(nodes_not_in_story), 2) if (x,y) in self.anc.family]
+            num_edges = random.choice(range(1, len(possible_edges)))
+            possible_edges = random.sample(possible_edges, num_edges)
+            self.puzzles[puzzle_id]['fact_3'] = possible_edges
 
-    def derive(self, edge, ignore_edges, k=1):
+    def expand(self, edge, tp='family'):
         """
         Given an edge, break the edge into two compositional edges from the given
         family graph. Eg, if input is (x,y), break the edge into (x,z) and (z,y)
+        following the rules
         :param edge: Edge to break
         :param ignore_edges: Edges to ignore while breaking an edge. Used to ignore loops
         :param k: if k == 0, stop recursing
         :return:
         """
-        self.invert_rel()
-        # for each node in graph, check if (edge[0],node) and (node, edge[1]) exists.
-        found = False
-        for node_id in self.anc.family_data.keys():
-            var_l = (edge[0], node_id)
-            var_r = (node_id, edge[1])
-            if var_l == edge or var_r == edge or var_l in ignore_edges or var_r in ignore_edges:
-                continue
-            if var_l in self.anc.family and var_r in self.anc.family:
-                found = [var_l, var_r]
-                print(edge, (var_l, var_r))
+        relation = self.anc.family[edge][tp]
+        if relation not in self.comp_rules_inv[tp]:
+            return None
+        rules = list(self.comp_rules_inv[tp][relation])
+        while len(rules) > 0:
+            rule = random.choice(rules)
+            rules.remove(rule)
+            for node in self.anc.family_data.keys():
+                e1 = (edge[0], node)
+                e2 = (node, edge[1])
+                if e1 in self.anc.family and self.anc.family[e1][tp] == rule[0] \
+                        and e2 in self.anc.family and self.anc.family[e2][tp] == rule[1]:
+                    return [e1, e2]
+        return None
+
+    def derive(self, edge_list, k=3):
+        """
+        Given a list of edges, expand elements from the edge until we reach k
+        :param edge_list:
+        :param k:
+        :return:
+        """
+        proof_trace = []
+        seen = set()
+        while k>0:
+            if len(set(edge_list)) - len(seen) == 0:
                 break
-        one_step_story = [var_l, var_r]
-        k = k - 1
-        if found:
-            if k==0:
-                return one_step_story
-            else:
-                # we could expand the current variables either in left or right direction
-                # but controlling for the depth in both directions is hard
-                # so for now we would unroll only in left direction
-                ignore_edges.append(edge)
-                l_story = self.derive(var_l, ignore_edges, k)
-                l_step_story = copy.copy(l_story)
-                l_step_story.extend([var_r])
-                return l_step_story
-        else:
-            return [edge]
+            e = random.choice(list(set(edge_list) - seen))
+            seen.add(e)
+            ex_e = self.expand(e)
+            if ex_e and (ex_e[0] not in seen and ex_e[1] not in seen and ex_e[0][::-1] not in seen and ex_e[1][::-1] not in seen):
+                pos = edge_list.index(e)
+                edge_list.insert(pos, ex_e[-1])
+                edge_list.insert(pos, ex_e[0])
+                edge_list.remove(e)
+                #edge_list.extend(ex_e)
+                proof_trace.append({e:ex_e})
+                k = k-1
+        return edge_list, proof_trace
 
     def stringify(self, edge, rel_type='family'):
         """
@@ -287,7 +329,7 @@ if __name__=='__main__':
                 rb.almost_complete((i,j))
     print(rb.anc.family)
     pickle.dump(rb, open('rb.pkl','wb'))
-    story, target = rb.build(num_rel=3, fact_type=3)
-    print(story)
-    print(target)
+    rb.build(num_rel=3)
+    rb.add_facts()
+    print("Generated {} puzzles".format(len(rb.puzzles)))
 
