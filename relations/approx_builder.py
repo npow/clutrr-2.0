@@ -209,7 +209,7 @@ class RelationBuilder:
             for se in story:
                 e = self.expand(se)
                 if e:
-                    if puzzle['edge'] not in e:
+                    if puzzle['edge'] not in e and len(set(e).intersection(set(story))) == 0 and len(set(e).intersection(set(extra_story))) == 0:
                         extra_story.extend(e)
             self.puzzles[puzzle_id]['fact_1'] = extra_story
             # Irrelevant facts
@@ -307,6 +307,19 @@ class RelationBuilder:
         text = text.replace('e_2', node_b_name)
         return text + '. '
 
+    def generate_puzzles(self):
+        """
+        Given stored puzzles, run `stringify` over them
+        :return:
+        """
+        puzzle_ids = self.puzzles.keys()
+        for pi in puzzle_ids:
+            self.puzzles[pi]['text_story'] = ''.join([self.stringify(e) for e in self.puzzles[pi]['story']])
+            self.puzzles[pi]['text_fact_1'] = ''.join([self.stringify(e) for e in self.puzzles[pi]['fact_1']])
+            self.puzzles[pi]['text_fact_2'] = ''.join([self.stringify(e) for e in self.puzzles[pi]['fact_2']])
+            self.puzzles[pi]['text_fact_3'] = ''.join([self.stringify(e) for e in self.puzzles[pi]['fact_3']])
+            self.puzzles[pi]['text_target'] = self.stringify(self.puzzles[pi]['edge'])
+
     def _test_story(self, story):
         """
         Given a list of edges of the story, test whether they are logically valid
@@ -319,7 +332,7 @@ class RelationBuilder:
 
 
 if __name__=='__main__':
-    anc = Ancestry(max_levels=2, min_child=2, max_child=2)
+    anc = Ancestry(max_levels=3, min_child=2, max_child=2)
     anc.simulate()
     rb = RelationBuilder(anc)
     print(rb.anc.family)
@@ -328,8 +341,9 @@ if __name__=='__main__':
             if i!=j:
                 rb.almost_complete((i,j))
     print(rb.anc.family)
-    pickle.dump(rb, open('rb.pkl','wb'))
     rb.build(num_rel=3)
     rb.add_facts()
+    rb.generate_puzzles()
     print("Generated {} puzzles".format(len(rb.puzzles)))
+    pickle.dump(rb, open('rb.pkl', 'wb'))
 

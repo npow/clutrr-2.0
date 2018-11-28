@@ -29,7 +29,8 @@
       },
       "inv-child": {
         "child": "sibling",
-        "inv-child": "inv-grand"
+        "inv-child": "inv-grand",
+        "sibling": "inv-un"
       },
       "SO": {
         "inv-child": "inv-in-law",
@@ -37,7 +38,8 @@
       },
       "sibling": {
         "sibling": "sibling",
-        "inv-grand": "inv-grand"
+        "inv-grand": "inv-grand",
+        "child": "un"
       },
       "grand": {
         "sibling": "grand"
