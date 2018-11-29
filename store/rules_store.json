@@ -16,6 +16,9 @@
       "grand": "inv-grand",
       "un": "inv-un",
       "in-law": "inv-in-law"
+    },
+    "work": {
+      "manager": "subordinate"
     }
   },
   "compositional": {
@@ -34,7 +37,8 @@
       },
       "SO": {
         "inv-child": "inv-in-law",
-        "grand": "grand"
+        "grand": "grand",
+        "child": "child"
       },
       "sibling": {
         "sibling": "sibling",
@@ -42,12 +46,19 @@
         "child": "un"
       },
       "grand": {
-        "sibling": "grand"
+        "sibling": "grand",
+        "inv-child": "child"
       }
     },
     "work": {
       "works_at" : {
+        "works_at": "coworker",
         "manager": "subordinate"
+      },
+      "coworker": {
+        "works_at": "works_at",
+        "manager": "coworker",
+        "subordinate": "coworker"
       }
     }
   },

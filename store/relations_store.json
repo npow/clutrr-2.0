@@ -113,8 +113,8 @@
       "e_2 is e_1's uncle"
     ],
     "female": [
-      "e_2 is the uncle of e_1",
-      "e_2 is e_1's uncle"
+      "e_2 is the aunt of e_1",
+      "e_2 is e_1's aunt"
     ]
   },
   "no-relation": {

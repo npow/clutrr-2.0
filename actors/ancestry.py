@@ -4,7 +4,7 @@ import names
 import pdb
 import copy
 import random
-from actors.actor import Actor
+from actors.actor import Actor, Entity
 from store.store import Store
 
 store = Store()
@@ -30,6 +30,7 @@ class Ancestry:
                  relationship_type={'SO':1,'child':2}, taken_names=None):
         self.family = {} # dict (node_id_a, node_id_b) : rel dict
         self.family_data = {} # dict to hold node_id details
+        self.work_data = {} # dict to hold work location id details
         self.max_levels = max_levels
         self.min_child = min_child
         self.max_child = max_child
@@ -39,6 +40,7 @@ class Ancestry:
         self.node_ct = 0
         self.taken_names = taken_names if taken_names else copy.deepcopy(store.attr_names) # keep track of names which are already taken
         self.simulate()
+        #self.add_work_relations()
 
     def simulate(self):
         """
@@ -120,8 +122,54 @@ class Ancestry:
         else:
             return 'male'
 
+    def add_work_relations(self, w=0.3):
+        """
+        Policy of adding working relations:
+        - Add w work locations
+        - Divide the population into these w bins
+        - Add works_at relation
+        - Within each bin:
+            - Assign m managers
+        :return:
+        """
+        num_pop = len(self.family_data)
+        pop_ids = self.family_data.keys()
+        work_locations = random.sample(store.attribute_store['work']['options'], int(num_pop * w))
+        node_ct = self.node_ct
+        work_bins = {}
+        pop_per_loc = num_pop // len(work_locations)
+        for wl in work_locations:
+            self.work_data[node_ct] = Entity(name=wl, etype='work')
+            w = random.sample(pop_ids, pop_per_loc)
+            pop_ids = list(set(pop_ids) - set(w))
+            work_bins[wl] = {"id": node_ct, "w": w}
+            node_ct+=1
+        if len(pop_ids) > 0:
+            work_bins[work_locations[-1]]["w"].extend(pop_ids)
+        self.node_ct = node_ct
+        for wl in work_locations:
+            e_id = work_bins[wl]["id"]
+            pops = work_bins[wl]["w"]
+            for p in pops:
+                edge = (e_id, p)
+                if edge not in self.family:
+                    self.family[edge] = {'family':'', 'work': []}
+                if 'work' not in self.family[edge]:
+                    self.family[edge]['work'] = []
+                self.family[edge]['work'].append('works_at')
+            # select manager
+            manager = random.choice(pops)
+            for p in pops:
+                edge = (p, manager)
+                if edge not in self.family:
+                    self.family[edge] = {'family':'', 'work': []}
+                if 'work' not in self.family[edge]:
+                    self.family[edge]['work'] = []
+                self.family[edge]['work'].append('manager')
+
+
 
 if __name__=='__main__':
     #pdb.set_trace()
     anc = Ancestry()
-    anc.simulate()
+    anc.add_work_relations()

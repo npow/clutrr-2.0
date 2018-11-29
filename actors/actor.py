@@ -46,7 +46,25 @@ class Actor:
             self.name, self.gender, self.node_id
         )
 
+class Entity:
+    """
+    work or related entities
+    etype="work"
 
+    """
+    def __init__(self, name='', etype='', node_id=0):
+        self.name = name
+        self.etype = etype
+        self.node_id = node_id
+
+    def __repr__(self):
+        return "<Entity name:{} etype: {} node_id:{}".format(
+            self.name, self.etype, self.node_id)
+
+    def __str__(self):
+        return "Entity node, name: {}, etype: {}, node_id : {}".format(
+            self.name, self.etype, self.node_id
+        )
 
 
 
