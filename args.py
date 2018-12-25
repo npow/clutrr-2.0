@@ -27,8 +27,6 @@ def get_args():
     # others
     # TODO: do we want to keep the old method of adding distractors?
     # parser.add_argument("--min_distractor_relations", default=8, type=int, help="Distractor relations about entities")
-    parser.add_argument("--train_test_split",default=0.8, type=float, help="Training and testing split")
-    parser.add_argument("--calc", default=False, action='store_true', help="Calculate max path")
     parser.add_argument("-v","--verbose", default=False, action='store_true',
                         help='print the paths')
 
