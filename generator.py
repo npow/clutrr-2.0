@@ -32,7 +32,7 @@ def generate_rows(args, store):
         for pid, puzzle in rb.puzzles.items():
             story = puzzle['text_story']
             clean_story = ''.join(story)
-            noise = [v for k,v in puzzle.items() if 'fact' in k]
+            noise = [v for k,v in puzzle.items() if 'text_fact' in k]
             noise = [y for x in noise for y in x] # flatten
             story += noise
             story = random.sample(story, len(story))

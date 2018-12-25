@@ -228,6 +228,7 @@ class RelationBuilder:
                 self.puzzles[puzzle_id]['fact_1'] = extra_story
             if self.args.noise_irrelevant:
                 # Irrelevant facts
+                story = puzzle['story']
                 num_edges = len(story)
                 sampled_edge = random.choice(story)
                 extra_story = []
@@ -244,6 +245,7 @@ class RelationBuilder:
                 self.puzzles[puzzle_id]['fact_2'] = extra_story
             if self.args.noise_disconnected:
                 # Disconnected facts
+                story = puzzle['story']
                 nodes_story = set([y for x in list(story) for y in x])
                 nodes_not_in_story = set(self.anc.family_data.keys()) - nodes_story
                 possible_edges = [(x,y) for x,y in it.combinations(list(nodes_not_in_story), 2) if (x,y) in self.anc.family]
