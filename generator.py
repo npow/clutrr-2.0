@@ -9,6 +9,7 @@ import pprint
 from args import get_args
 from utils.utils import split_train_test, write2file, sanity_check
 from store.store import Store
+import pandas as pd
 
 #store = Store()
 
@@ -17,6 +18,7 @@ def generate_rows(args, store):
     pb = tqdm(total=args.num_rows)
     num_stories = args.num_rows
     stories_left = num_stories
+    columns = ['story', 'target', 'text_target', 'clean_story', 'proof_state']
     rows = []
     anc_num = 0
     while stories_left > 0:
@@ -27,13 +29,20 @@ def generate_rows(args, store):
         rb.add_facts()
         rb.generate_puzzles()
         # now we have got the puzzles, add them to the story
-
-        stories = rb.puzzles
-        stories_left = num_stories - len(stories)
-        pb.update(1)
+        for pid, puzzle in rb.puzzles.items():
+            story = puzzle['text_story']
+            clean_story = ''.join(story)
+            noise = [v for k,v in puzzle.items() if 'fact' in k]
+            noise = [y for x in noise for y in x] # flatten
+            story += noise
+            story = random.sample(story, len(story))
+            story = ''.join(story)
+            rows.append([story, puzzle['target'], puzzle['text_target'], clean_story, puzzle['proof']])
+            pb.update(1)
+        stories_left = stories_left - len(rb.puzzles)
     pb.close()
     print("{} ancestries created".format(anc_num))
-    return rows
+    return columns, rows
 
 
 def current_config_path_stats(args):
@@ -94,10 +103,12 @@ def test_run():
     print(rb.puzzles[pid])
 
 if __name__ == '__main__':
-    test_run()
-    #args = get_args()
-    #store = Store(args)
-    #rows = generate_rows(args, store)
+    #test_run()
+    args = get_args()
+    store = Store(args)
+    header, rows = generate_rows(args, store)
+    df = pd.DataFrame(columns=header, data=rows)
+    df.to_csv(args.output + '.csv')
 
 
 

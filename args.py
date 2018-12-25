@@ -3,7 +3,7 @@ import argparse
 def get_args():
     parser = argparse.ArgumentParser()
     # graph parameters
-    parser.add_argument("--num_rows", default=5000, type=int, help='number of rows')
+    parser.add_argument("--num_rows", default=100, type=int, help='number of rows')
     parser.add_argument("--max_levels", default=2, type=int, help="max number of levels")
     parser.add_argument("--min_child", default=2, type=int, help="max number of children per node")
     parser.add_argument("--max_child", default=2, type=int, help="max number of children per node")

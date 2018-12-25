@@ -361,11 +361,11 @@ class RelationBuilder:
             extra_keys.append('fact_3')
         puzzle_ids = self.puzzles.keys()
         for pi in puzzle_ids:
-            self.puzzles[pi]['text_story'] = ''.join([self.stringify(e) for e in self.puzzles[pi]['story']])
+            self.puzzles[pi]['text_story'] = [self.stringify(e) for e in self.puzzles[pi]['story']]
             self.puzzles[pi]['text_target'] = self.stringify(self.puzzles[pi]['edge'])
             self.puzzles[pi]['target'] = self._get_edge_rel(self.puzzles[pi]['edge'])['rel']
             for key in extra_keys:
-                self.puzzles[pi]['text_{}'.format(key)] = ''.join([self.stringify(e) for e in self.puzzles[pi][key]])
+                self.puzzles[pi]['text_{}'.format(key)] = [self.stringify(e) for e in self.puzzles[pi][key]]
             # replace edges with name and relations
             self.puzzles[pi]['f_edge'] = self._format_edge(self.puzzles[pi]['edge'])
             self.puzzles[pi]['f_story'] = [self._format_edge(x) for x in self.puzzles[pi]['story']]
