@@ -7,7 +7,7 @@ import random
 from actors.actor import Actor, Entity
 from store.store import Store
 
-store = Store()
+#store = Store()
 
 class Ancestry:
     """
@@ -26,19 +26,20 @@ class Ancestry:
     - We will also maintain a separate dictionary for mapping of node_id to details
     - relation keyword to be taken from rules_store
     """
-    def __init__(self, max_levels=1, min_child=1, max_child=3, p_marry=1,
+    def __init__(self, args, store:Store,
                  relationship_type={'SO':1,'child':2}, taken_names=None):
         self.family = {} # dict (node_id_a, node_id_b) : rel dict
         self.family_data = {} # dict to hold node_id details
         self.work_data = {} # dict to hold work location id details
-        self.max_levels = max_levels
-        self.min_child = min_child
-        self.max_child = max_child
-        self.p_marry = p_marry
+        self.store = store
+        self.max_levels = args.max_levels
+        self.min_child = args.min_child
+        self.max_child = args.max_child
+        self.p_marry = args.p_marry
         self.relationship_type = relationship_type
         self.levels = 0 # keep track of the levels
         self.node_ct = 0
-        self.taken_names = taken_names if taken_names else copy.deepcopy(store.attr_names) # keep track of names which are already taken
+        self.taken_names = taken_names if taken_names else copy.deepcopy(self.store.attr_names) # keep track of names which are already taken
         self.simulate()
         #self.add_work_relations()
 
@@ -95,7 +96,7 @@ class Ancestry:
                 name = names.get_first_name(gender=gender)
             self.taken_names.add(name)
             node = Actor(
-                name=name, gender=gender, node_id=node_id)
+                name=name, gender=gender, node_id=node_id, store=self.store)
             added_nodes.append(node)
             self.family_data[node_id] = node
             node_id += 1
@@ -134,7 +135,7 @@ class Ancestry:
         """
         num_pop = len(self.family_data)
         pop_ids = self.family_data.keys()
-        work_locations = random.sample(store.attribute_store['work']['options'], int(num_pop * w))
+        work_locations = random.sample(self.store.attribute_store['work']['options'], int(num_pop * w))
         node_ct = self.node_ct
         work_bins = {}
         pop_per_loc = num_pop // len(work_locations)

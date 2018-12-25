@@ -3,10 +3,10 @@ import json
 import yaml
 
 class Store:
-    def __init__(self,
-                 attribute_store='attribute_store.json',
-                 relations_store='relations_store.json',
-                 rules_store='rules_store.yaml'):
+    def __init__(self,args):
+        attribute_store = args.attribute_store if args.attribute_store else 'attribute_store.json'
+        relations_store = args.relations_store if args.relations_store else 'relations_store.json'
+        rules_store = args.rules_store if args.rules_store else 'rules_store.yaml'
         self.base_path = os.path.dirname(os.path.realpath(__file__)).split('store')[0]
         self.attribute_store = json.load(open(os.path.join(self.base_path, 'store', attribute_store)))
         self.relations_store = json.load(open(os.path.join(self.base_path, 'store', relations_store)))

@@ -2,14 +2,14 @@ import random
 import json
 from store.store import Store
 
-store = Store()
+#store = Store()
 
 class Actor:
     """
     male or female actor
 
     """
-    def __init__(self, gender='male', name='', node_id=0):
+    def __init__(self, gender='male', name='', node_id=0, store={}):
         self.gender = gender
         self.name = name
         self.node_id = node_id

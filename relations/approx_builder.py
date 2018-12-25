@@ -32,8 +32,9 @@ class RelationBuilder:
         - When applying the rules, make sure to confirm to these types
     """
 
-    def __init__(self, anc, store:Store, boundary=True):
+    def __init__(self,args, store:Store, anc):
         self.anc = anc
+        self.args = args
         self.rules = store.rules_store
         self.comp_rules = self.rules['compositional']
         self.inv_rules = self.rules['inverse-equivalence']
@@ -45,7 +46,8 @@ class RelationBuilder:
         self.sym_rules_inv = self._invert_rule(self.rules['symmetric'])
         self.eq_rules_inv = self._invert_rule(self.rules['equivalence'])
         self.relations_obj = store.relations_store
-        self.boundary = boundary
+        self.boundary = args.boundary
+        self.num_rel = args.relation_length
         self.puzzles = {}
         self.puzzle_ct = 0
         # save the edges which are used already
@@ -184,7 +186,7 @@ class RelationBuilder:
                 if i != j:
                     self.almost_complete((i, j))
 
-    def build(self, num_rel=2):
+    def build(self):
         """
         Build the stories and targets for the current family configuration
         and save it in memory. These will be used later for post-processing
@@ -193,8 +195,8 @@ class RelationBuilder:
         """
         available_edges = set([k for k, v in self.anc.family.items()]) - self.done_edges
         for edge in available_edges:
-            story, proof_trace = self.derive([edge], k=num_rel-1)
-            if len(story) == num_rel:
+            story, proof_trace = self.derive([edge], k=self.num_rel-1)
+            if len(story) == self.num_rel:
                 self.puzzles[self.puzzle_ct] = {
                     'edge': edge,
                     'story': story,
@@ -202,9 +204,8 @@ class RelationBuilder:
                 }
                 self.puzzle_ct += 1
 
-    def add_facts(self, fact_id=1):
+    def add_facts(self):
         """
-        :param fact_id :
             For each stored puzzle, add different types of facts
                 - 1 : Provide supporting facts. After creating the essential fact graph, expand on any
                 k number of edges (randomly)
@@ -215,7 +216,7 @@ class RelationBuilder:
         :return:
         """
         for puzzle_id, puzzle in self.puzzles.items():
-            if fact_id == 1:
+            if self.args.noise_support:
                 # Supporting facts
                 story = puzzle['story']
                 extra_story = []
@@ -225,7 +226,7 @@ class RelationBuilder:
                         if puzzle['edge'] not in e and len(set(e).intersection(set(story))) == 0 and len(set(e).intersection(set(extra_story))) == 0:
                             extra_story.extend(e)
                 self.puzzles[puzzle_id]['fact_1'] = extra_story
-            elif fact_id == 2:
+            if self.args.noise_irrelevant:
                 # Irrelevant facts
                 num_edges = len(story)
                 sampled_edge = random.choice(story)
@@ -241,7 +242,7 @@ class RelationBuilder:
                     if tmp == sampled_edge:
                         sampled_edge = random.choice(story)
                 self.puzzles[puzzle_id]['fact_2'] = extra_story
-            elif fact_id == 3:
+            if self.args.noise_disconnected:
                 # Disconnected facts
                 nodes_story = set([y for x in list(story) for y in x])
                 nodes_not_in_story = set(self.anc.family_data.keys()) - nodes_story
@@ -249,8 +250,6 @@ class RelationBuilder:
                 num_edges = random.choice(range(1, len(possible_edges)))
                 possible_edges = random.sample(possible_edges, num_edges)
                 self.puzzles[puzzle_id]['fact_3'] = possible_edges
-            else:
-                raise NotImplementedError("Fact option {} not implemented".format(fact_id))
 
     def expand(self, edge, tp='family'):
         """
@@ -324,13 +323,20 @@ class RelationBuilder:
         text = text.replace('e_2', node_b_name)
         return text + '. '
 
-    def generate_puzzles(self, extra_keys=[]):
+    def generate_puzzles(self):
         """
         Given stored puzzles, run `stringify` over them
         :param: extra_keys : this should contain the extra fact keys we want to add in the puzzles. We already generated
         the extra facts using `add_facts`, we just need to stringify them.
         :return:
         """
+        extra_keys = []
+        if self.args.noise_support:
+            extra_keys.append('fact_1')
+        if self.args.noise_irrelevant:
+            extra_keys.append('fact_2')
+        if self.args.noise_disconnected:
+            extra_keys.append('fact_3')
         puzzle_ids = self.puzzles.keys()
         for pi in puzzle_ids:
             self.puzzles[pi]['text_story'] = ''.join([self.stringify(e) for e in self.puzzles[pi]['story']])
@@ -348,15 +354,4 @@ class RelationBuilder:
         for e_i in range(len(story) - 1):
             assert story[e_i][-1] == story[e_i + 1][0]
 
-
-if __name__=='__main__':
-    anc = Ancestry(max_levels=3, min_child=2, max_child=2)
-    anc.simulate()
-    store = Store()
-    rb = RelationBuilder(anc, store)
-    rb.build(num_rel=3)
-    rb.add_facts(fact_id=1)
-    rb.generate_puzzles(extra_keys=['fact_1'])
-    print("Generated {} puzzles".format(len(rb.puzzles)))
-    pickle.dump(rb, open('rb.pkl', 'wb'))
 

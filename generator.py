@@ -1,7 +1,7 @@
 # Generate story-summary pairs
 
 from actors.ancestry import Ancestry
-from relations.builder import RelationBuilder
+from relations.approx_builder import RelationBuilder
 from tqdm import tqdm
 import random
 import pprint
@@ -10,7 +10,7 @@ from args import get_args
 from utils.utils import split_train_test, write2file, sanity_check
 from store.store import Store
 
-store = Store()
+#store = Store()
 
 def generate_rows(args):
     # generate
@@ -100,17 +100,17 @@ def current_config_path_stats(args):
 
 if __name__ == '__main__':
     args = get_args()
-    if args.calc:
-        print(current_config_path_stats(args))
-        exit(0)
-    rows = generate_rows(args)
-    train_rows, test_rows = split_train_test(args, rows)
-    train_filename = '{}_train.csv'.format(args.output)
-    test_filename = '{}_test.csv'.format(args.output)
-    write2file(args, train_rows, train_filename)
-    write2file(args, test_rows, test_filename)
-    sanity_check(train_filename, train_rows)
-    sanity_check(test_filename, test_rows)
+    store = Store(args)
+    anc = Ancestry(args, store)
+    anc.simulate()
+    rb = RelationBuilder(args, store, anc)
+    rb.build()
+    rb.add_facts()
+    rb.generate_puzzles()
+    print("Generated {} puzzles".format(len(rb.puzzles)))
+    pid = random.choice(list(rb.puzzles.keys()))
+    print(rb.puzzles[pid])
+
 
 
 
