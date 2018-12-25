@@ -297,9 +297,31 @@ class RelationBuilder:
                 edge_list.insert(pos, ex_e[0])
                 edge_list.remove(e)
                 #edge_list.extend(ex_e)
+                # format proof into human readable form
+                e = self._format_edge(e)
+                ex_e = [self._format_edge(x) for x in ex_e]
                 proof_trace.append({e:ex_e})
                 k = k-1
         return edge_list, proof_trace
+
+    def _get_edge_rel(self, edge, rel_type='family'):
+        # get node attributes
+        node_b_attr = self.anc.family_data[edge[1]]
+        relation = self.anc.family[edge][rel_type]
+        edge_rel = self.relations_obj[relation][node_b_attr.gender]
+        return edge_rel
+
+    def _format_edge(self, edge, rel_type='family'):
+        """
+        Given an edge (x,y), format it into (name(x), rel(x,y), name(y))
+        :param edge:
+        :return:
+        """
+        node_a_attr = self.anc.family_data[edge[0]]
+        node_b_attr = self.anc.family_data[edge[1]]
+        edge_rel = self._get_edge_rel(edge, rel_type)['rel']
+        new_edge = (node_a_attr.name, edge_rel, node_b_attr.name)
+        return new_edge
 
     def stringify(self, edge, rel_type='family'):
         """
@@ -310,8 +332,8 @@ class RelationBuilder:
         # get node attributes
         node_a_attr = self.anc.family_data[edge[0]]
         node_b_attr = self.anc.family_data[edge[1]]
-        relation = self.anc.family[edge][rel_type]
-        placeholders = self.relations_obj[relation][node_b_attr.gender]
+        relation = self._get_edge_rel(edge, rel_type)
+        placeholders = relation['p']
         placeholder = random.choice(placeholders)
         node_a_name = node_a_attr.name
         node_b_name = node_b_attr.name
@@ -341,8 +363,13 @@ class RelationBuilder:
         for pi in puzzle_ids:
             self.puzzles[pi]['text_story'] = ''.join([self.stringify(e) for e in self.puzzles[pi]['story']])
             self.puzzles[pi]['text_target'] = self.stringify(self.puzzles[pi]['edge'])
+            self.puzzles[pi]['target'] = self._get_edge_rel(self.puzzles[pi]['edge'])['rel']
             for key in extra_keys:
                 self.puzzles[pi]['text_{}'.format(key)] = ''.join([self.stringify(e) for e in self.puzzles[pi][key]])
+            # replace edges with name and relations
+            self.puzzles[pi]['f_edge'] = self._format_edge(self.puzzles[pi]['edge'])
+            self.puzzles[pi]['f_story'] = [self._format_edge(x) for x in self.puzzles[pi]['story']]
+
 
     def _test_story(self, story):
         """

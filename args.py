@@ -22,7 +22,7 @@ def get_args():
                         help="Noise type: Disconnected facts")
     # store locations
     parser.add_argument("--rules_store", default="rules_store.yaml", type=str, help='Rules store')
-    parser.add_argument("--relations_store", default="relations_store.json", type=str, help='Relations store')
+    parser.add_argument("--relations_store", default="relations_store.yaml", type=str, help='Relations store')
     parser.add_argument("--attribute_store", default="attribute_store.json", type=str, help='Attributes store')
     # others
     # TODO: do we want to keep the old method of adding distractors?

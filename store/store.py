@@ -9,7 +9,7 @@ class Store:
         rules_store = args.rules_store if args.rules_store else 'rules_store.yaml'
         self.base_path = os.path.dirname(os.path.realpath(__file__)).split('store')[0]
         self.attribute_store = json.load(open(os.path.join(self.base_path, 'store', attribute_store)))
-        self.relations_store = json.load(open(os.path.join(self.base_path, 'store', relations_store)))
+        self.relations_store = yaml.load(open(os.path.join(self.base_path, 'store', relations_store)))
         self.rules_store = yaml.load(open(os.path.join(self.base_path, 'store', rules_store)))
 
         # TODO: do we need this?

@@ -12,41 +12,24 @@ from store.store import Store
 
 #store = Store()
 
-def generate_rows(args):
+def generate_rows(args, store):
     # generate
     pb = tqdm(total=args.num_rows)
     num_stories = args.num_rows
     stories_left = num_stories
-    stories = []
-    abstracts = []
-    relation_paths = []
+    rows = []
     anc_num = 0
     while stories_left > 0:
         anc_num += 1
-        anc = Ancestry(max_levels=args.max_levels,
-                       min_child=args.min_child,
-                       max_child=args.max_child,
-                       relationship_type=store.relationship_type)
-        rb = RelationBuilder(boundary=args.boundary,
-                             min_distractor_relations=args.min_distractor_relations,
-                             backward=args.backward)
-        rb.init_family(anc)
-        sts, abs, relp = rb.make_single_story(args.relation_length, stories_left)
-        stories.extend(sts)
-        abstracts.extend(abs)
-        relation_paths.extend(relp)
-        stories_left = num_stories - len(stories)
+        anc = Ancestry(args, store)
+        rb = RelationBuilder(args, store, anc)
+        rb.build()
+        rb.add_facts()
+        rb.generate_puzzles()
+        # now we have got the puzzles, add them to the story
 
-    rows = []
-    # aggregating
-    for sindx in range(len(stories)):
-        if sindx > num_stories:
-            break
-        story = stories[sindx]
-        # shuffle the story
-        story = random.sample(story, len(story))
-        story = '. '.join(story) + '.'
-        rows.append([story, abstracts[sindx], relation_paths[sindx]])
+        stories = rb.puzzles
+        stories_left = num_stories - len(stories)
         pb.update(1)
     pb.close()
     print("{} ancestries created".format(anc_num))
@@ -98,11 +81,10 @@ def current_config_path_stats(args):
     return path_stats
 
 
-if __name__ == '__main__':
+def test_run():
     args = get_args()
     store = Store(args)
     anc = Ancestry(args, store)
-    anc.simulate()
     rb = RelationBuilder(args, store, anc)
     rb.build()
     rb.add_facts()
@@ -111,6 +93,11 @@ if __name__ == '__main__':
     pid = random.choice(list(rb.puzzles.keys()))
     print(rb.puzzles[pid])
 
+if __name__ == '__main__':
+    test_run()
+    #args = get_args()
+    #store = Store(args)
+    #rows = generate_rows(args, store)
 
 
 
