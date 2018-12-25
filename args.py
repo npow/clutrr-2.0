@@ -9,6 +9,8 @@ def get_args():
     parser.add_argument("--abstracts", default=1, type=int, help="Abstract lines per relation")
     parser.add_argument("--boundary",default=True, action='store_true', help='Boundary in entities')
     parser.add_argument("--output", default="gen_m3", type=str, help='Prefix of the output file')
+
+
     parser.add_argument("--min_distractor_relations", default=8, type=int, help="Distractor relations about entities")
     parser.add_argument("--relation_length", default=3, type=int, help="Max relation path length")
     parser.add_argument("--backward", default=False, action='store_true', help='if true then consider backward paths too')

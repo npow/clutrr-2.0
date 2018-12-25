@@ -1,0 +1,57 @@
+# dictionary to contain rules
+
+symmetric:
+  family:
+    sibling: sibling
+    SO: SO
+
+equivalence:
+  work:
+    manager: coworker
+
+inverse-equivalence:
+  family:
+    child: inv-child
+    grand: inv-grand
+    un: inv-un
+    in-law: inv-in-law
+  work:
+    manager: subordinate
+
+# compositional rules are given in the following order: (key, v_key): v_val
+# for example, child: \n child: grand refers to the compositional rules (child, child) : grand
+
+compositional:
+  family:
+    child:
+      child: grand
+      SO: in-law
+      sibling: child
+      inv-child: sibling
+      inv-grand: inv-child
+    inv-child:
+      child: sibling
+      inv-child: inv-grand
+      sibling: inv-un
+    SO:
+      inv-child: inv-in-law
+      grand: grand
+      child: child
+    sibling:
+      sibling: sibling
+      inv-grand: inv-grand
+      child: un
+    grand:
+      sibling: grand
+      inv-child: child
+  work: 
+    works_at : 
+      works_at: coworker
+      manager: subordinate
+    coworker: 
+      works_at: works_at
+      manager: coworker
+      subordinate: coworker
+
+# relation types
+relation_types: [family, work]

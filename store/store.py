@@ -1,13 +1,18 @@
 import os
 import json
+import yaml
 
 class Store:
-    def __init__(self):
+    def __init__(self,
+                 attribute_store='attribute_store.json',
+                 relations_store='relations_store.json',
+                 rules_store='rules_store.yaml'):
         self.base_path = os.path.dirname(os.path.realpath(__file__)).split('store')[0]
-        self.attribute_store = json.load(open(os.path.join(self.base_path, 'store', 'attribute_store.json')))
-        self.relations_store = json.load(open(os.path.join(self.base_path, 'store', 'relations_store.json')))
-        self.rules_store = json.load(open(os.path.join(self.base_path, 'store', 'rules_store.json')))
+        self.attribute_store = json.load(open(os.path.join(self.base_path, 'store', attribute_store)))
+        self.relations_store = json.load(open(os.path.join(self.base_path, 'store', relations_store)))
+        self.rules_store = yaml.load(open(os.path.join(self.base_path, 'store', rules_store)))
 
+        # TODO: do we need this?
         ## Relationship type has basic values 0,1 and 2, whereas the
         ## rest should be inferred. Like, child + child = 4 = grand
         self.relationship_type = {

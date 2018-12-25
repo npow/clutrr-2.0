@@ -12,8 +12,6 @@ import json
 import pickle
 import uuid
 
-store = Store()
-
 class RelationBuilder:
     """
     Relation builder class
@@ -34,7 +32,7 @@ class RelationBuilder:
         - When applying the rules, make sure to confirm to these types
     """
 
-    def __init__(self, anc, boundary=True):
+    def __init__(self, anc, store:Store, boundary=True):
         self.anc = anc
         self.rules = store.rules_store
         self.comp_rules = self.rules['compositional']
@@ -52,6 +50,7 @@ class RelationBuilder:
         self.puzzle_ct = 0
         # save the edges which are used already
         self.done_edges = set()
+        self.apply_almost_complete()
 
     def _invert_rule(self, rule):
         """
@@ -124,7 +123,7 @@ class RelationBuilder:
         self.anc.family = n_family
 
 
-    def compose_rel(self, edge_1, edge_2, rel_type='family'):
+    def compose_rel(self, edge_1, edge_2, rel_type='family', verbose=False):
         """
         Given an edge pair, add the edges into a single edge following the rules
         in the dictionary
@@ -149,7 +148,8 @@ class RelationBuilder:
                     if n_edge not in self.anc.family:
                         self.anc.family[n_edge] = {}
                     self.anc.family[n_edge][rel_type] = n_rel
-                    print(edge_1, edge_2, n_rel)
+                    if verbose:
+                        print(edge_1, edge_2, n_rel)
                     return n_edge
         return None
 
@@ -173,6 +173,16 @@ class RelationBuilder:
             self.almost_complete(e)
         for e in edge_2:
             self.almost_complete(e)
+
+    def apply_almost_complete(self):
+        """
+        For each edge apply ``almost_complete``
+        :return:
+        """
+        for i in range(len(self.anc.family_data)):
+            for j in range(len(self.anc.family_data)):
+                if i != j:
+                    self.almost_complete((i, j))
 
     def build(self, num_rel=2):
         """
@@ -342,16 +352,11 @@ class RelationBuilder:
 if __name__=='__main__':
     anc = Ancestry(max_levels=3, min_child=2, max_child=2)
     anc.simulate()
-    rb = RelationBuilder(anc)
-    print(rb.anc.family)
-    for i in range(len(anc.family_data)):
-        for j in range(len(anc.family_data)):
-            if i!=j:
-                rb.almost_complete((i,j))
-    print(rb.anc.family)
+    store = Store()
+    rb = RelationBuilder(anc, store)
     rb.build(num_rel=3)
     rb.add_facts(fact_id=1)
-    rb.generate_puzzles()
+    rb.generate_puzzles(extra_keys=['fact_1'])
     print("Generated {} puzzles".format(len(rb.puzzles)))
     pickle.dump(rb, open('rb.pkl', 'wb'))
 
