@@ -177,7 +177,7 @@ class RelationBuilder:
     def build(self, num_rel=2):
         """
         Build the stories and targets for the current family configuration
-        and save it in memory. This will be used later to post-process, i.e add noise
+        and save it in memory. These will be used later for post-processing
         :param num_rel:
         :return:
         """
@@ -192,48 +192,55 @@ class RelationBuilder:
                 }
                 self.puzzle_ct += 1
 
-    def add_facts(self):
+    def add_facts(self, fact_id=1):
         """
-        For each stored puzzle, add different types of facts
-            - 1 : Provide supporting facts. After creating the essential fact graph, expand on any
-            k number of edges (randomly)
-            - 2: Irrelevant facts: after creating the relevant fact graph, expand on an edge,
-             but only provide dangling expansions
-            - 3: Disconnected facts: along with relevant facts, provide a tree which is completely
+        :param fact_id :
+            For each stored puzzle, add different types of facts
+                - 1 : Provide supporting facts. After creating the essential fact graph, expand on any
+                k number of edges (randomly)
+                - 2: Irrelevant facts: after creating the relevant fact graph, expand on an edge,
+                 but only provide dangling expansions
+                - 3: Disconnected facts: along with relevant facts, provide a tree which is completely
+                separate from the proof path
         :return:
         """
         for puzzle_id, puzzle in self.puzzles.items():
-            # Supporting facts
-            story = puzzle['story']
-            extra_story = []
-            for se in story:
-                e = self.expand(se)
-                if e:
-                    if puzzle['edge'] not in e and len(set(e).intersection(set(story))) == 0 and len(set(e).intersection(set(extra_story))) == 0:
-                        extra_story.extend(e)
-            self.puzzles[puzzle_id]['fact_1'] = extra_story
-            # Irrelevant facts
-            num_edges = len(story)
-            sampled_edge = random.choice(story)
-            extra_story = []
-            for i in range(num_edges):
-                tmp = sampled_edge
-                pair = self.expand(sampled_edge)
-                if pair:
-                    for e in pair:
-                        if e != puzzle['edge']:
-                            extra_story.append(e)
-                            sampled_edge = e
-                if tmp == sampled_edge:
-                    sampled_edge = random.choice(story)
-            self.puzzles[puzzle_id]['fact_2'] = extra_story
-            # Disconnected facts
-            nodes_story = set([y for x in list(story) for y in x])
-            nodes_not_in_story = set(self.anc.family_data.keys()) - nodes_story
-            possible_edges = [(x,y) for x,y in it.combinations(list(nodes_not_in_story), 2) if (x,y) in self.anc.family]
-            num_edges = random.choice(range(1, len(possible_edges)))
-            possible_edges = random.sample(possible_edges, num_edges)
-            self.puzzles[puzzle_id]['fact_3'] = possible_edges
+            if fact_id == 1:
+                # Supporting facts
+                story = puzzle['story']
+                extra_story = []
+                for se in story:
+                    e = self.expand(se)
+                    if e:
+                        if puzzle['edge'] not in e and len(set(e).intersection(set(story))) == 0 and len(set(e).intersection(set(extra_story))) == 0:
+                            extra_story.extend(e)
+                self.puzzles[puzzle_id]['fact_1'] = extra_story
+            elif fact_id == 2:
+                # Irrelevant facts
+                num_edges = len(story)
+                sampled_edge = random.choice(story)
+                extra_story = []
+                for i in range(num_edges):
+                    tmp = sampled_edge
+                    pair = self.expand(sampled_edge)
+                    if pair:
+                        for e in pair:
+                            if e != puzzle['edge']:
+                                extra_story.append(e)
+                                sampled_edge = e
+                    if tmp == sampled_edge:
+                        sampled_edge = random.choice(story)
+                self.puzzles[puzzle_id]['fact_2'] = extra_story
+            elif fact_id == 3:
+                # Disconnected facts
+                nodes_story = set([y for x in list(story) for y in x])
+                nodes_not_in_story = set(self.anc.family_data.keys()) - nodes_story
+                possible_edges = [(x,y) for x,y in it.combinations(list(nodes_not_in_story), 2) if (x,y) in self.anc.family]
+                num_edges = random.choice(range(1, len(possible_edges)))
+                possible_edges = random.sample(possible_edges, num_edges)
+                self.puzzles[puzzle_id]['fact_3'] = possible_edges
+            else:
+                raise NotImplementedError("Fact option {} not implemented".format(fact_id))
 
     def expand(self, edge, tp='family'):
         """
@@ -307,18 +314,19 @@ class RelationBuilder:
         text = text.replace('e_2', node_b_name)
         return text + '. '
 
-    def generate_puzzles(self):
+    def generate_puzzles(self, extra_keys=[]):
         """
         Given stored puzzles, run `stringify` over them
+        :param: extra_keys : this should contain the extra fact keys we want to add in the puzzles. We already generated
+        the extra facts using `add_facts`, we just need to stringify them.
         :return:
         """
         puzzle_ids = self.puzzles.keys()
         for pi in puzzle_ids:
             self.puzzles[pi]['text_story'] = ''.join([self.stringify(e) for e in self.puzzles[pi]['story']])
-            self.puzzles[pi]['text_fact_1'] = ''.join([self.stringify(e) for e in self.puzzles[pi]['fact_1']])
-            self.puzzles[pi]['text_fact_2'] = ''.join([self.stringify(e) for e in self.puzzles[pi]['fact_2']])
-            self.puzzles[pi]['text_fact_3'] = ''.join([self.stringify(e) for e in self.puzzles[pi]['fact_3']])
             self.puzzles[pi]['text_target'] = self.stringify(self.puzzles[pi]['edge'])
+            for key in extra_keys:
+                self.puzzles[pi]['text_{}'.format(key)] = ''.join([self.stringify(e) for e in self.puzzles[pi][key]])
 
     def _test_story(self, story):
         """
@@ -342,7 +350,7 @@ if __name__=='__main__':
                 rb.almost_complete((i,j))
     print(rb.anc.family)
     rb.build(num_rel=3)
-    rb.add_facts()
+    rb.add_facts(fact_id=1)
     rb.generate_puzzles()
     print("Generated {} puzzles".format(len(rb.puzzles)))
     pickle.dump(rb, open('rb.pkl', 'wb'))
