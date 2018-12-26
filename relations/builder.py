@@ -1,120 +1,349 @@
-# This file should contain the placeholders for the relations
-import networkx as nx
+# New builder class which makes use of our new data generation
+
 import random
-from collections import defaultdict
 import itertools as it
-from actors.actor import Actor
-from utils.utils import pairwise
+import copy
 from store.store import Store
 
-store = Store()
 
 class RelationBuilder:
     """
-    RelationBuilder class.
+    Relation builder class
+
+    Steps:
+    - Accept a skeleton class
+    - Iteratively:
+        - Invert the relations
+        - Sample edge e (n1, n2)
+        - Select the rule which matches this edge e (n1,n2) -> r
+        - introduce a variable x so that (n1,x) + (x,n2) -> r
+        - find the x which satifies both s.t x =/= {n1, n2}
+        - either add to story
+        - or recurse
+
+    Changes:
+        - Relation types are "family","work", etc (as given in ``relation_types``
+        - When applying the rules, make sure to confirm to these types
     """
-    def __init__(self, boundary=False,
-                 min_distractor_relations=3,
-                 backward=False):
-        """
-        Initialize relationbuilder class with a relationship file
-        :param relations_file: json file containing relationship placeholders
-        :param boundary: if True then put borders around name: `[name]`
-        :param backward: if true, then connect nodes in both directions
-        """
+
+    def __init__(self,args, store:Store, anc):
+        self.anc = anc
+        self.args = args
+        self.rules = store.rules_store
+        self.store = store
+        self.comp_rules = self.rules['compositional']
+        self.inv_rules = self.rules['inverse-equivalence']
+        self.sym_rules = self.rules['symmetric']
+        self.eq_rules = self.rules['equivalence']
+        self.relation_types = self.rules['relation_types']
+        self.comp_rules_inv = self._invert_rule(self.rules['compositional'])
+        self.inv_rules_inv = self._invert_rule(self.rules['inverse-equivalence'])
+        self.sym_rules_inv = self._invert_rule(self.rules['symmetric'])
+        self.eq_rules_inv = self._invert_rule(self.rules['equivalence'])
         self.relations_obj = store.relations_store
-        self.inv_rel_type = {v:k for k,v in store.relationship_type.items()}
-        self.family = None
-        self.siblings = []
-        self.boundary = boundary
-        self.backward = backward
-        self.min_distractor_relations = min_distractor_relations
+        self.boundary = args.boundary
+        self.num_rel = args.relation_length
+        self.puzzles = {}
+        self.puzzle_ct = 0
+        # save the edges which are used already
+        self.done_edges = set()
+        self.apply_almost_complete()
 
-    def init_family(self, anc):
+    def _invert_rule(self, rule):
         """
-        Initial family
-        :param anc: Ancestry object
-        :return: None
-        """
-        self.family = anc.family
-        self.siblings = self.extract_siblings()
-        self.connect_everyone()
-
-    def connect_everyone(self):
-        """
-        Convert the family tree into a almost fully connected graph by calculating the relations
+        Given a rule, invert it to be RHS:LHS
+        :param rule:
         :return:
         """
-        nodes = list(nx.dfs_preorder_nodes(self.family, 0))
-        connected_graph = nx.DiGraph()
-        connected_forward_graph = nx.DiGraph()
-        if self.backward:
-            connected_graph = nx.Graph()
-        for node_a, node_b in it.combinations(nodes, 2):
-            weight = self.get_weight(node_a, node_b)
-            if weight >=0 and weight in self.inv_rel_type:
-                if node_a not in connected_graph:
-                    connected_graph.add_node(node_a, data=self.family.node[node_a]['data'])
-                    connected_forward_graph.add_node(node_a, data=self.family.node[node_a]['data'])
-                if node_b not in connected_graph:
-                    connected_graph.add_node(node_b, data=self.family.node[node_b]['data'])
-                    connected_forward_graph.add_node(node_b, data=self.family.node[node_b]['data'])
-                connected_graph.add_edge(node_a, node_b, weight=weight)
-                connected_forward_graph.add_edge(node_a, node_b, weight=weight)
-        self.connected_family = connected_graph
-        self.connected_forward = connected_forward_graph
+        inv_rules = {}
+        for tp, rules in rule.items():
+            inv_rules[tp] = {}
+            for key, val in rules.items():
+                if type(val) == str:
+                    if val not in inv_rules[tp]:
+                        inv_rules[tp][val] = []
+                    inv_rules[tp][val].append(key)
+                else:
+                    for k2, v2 in val.items():
+                        if v2 not in inv_rules[tp]:
+                            inv_rules[tp][v2] = []
+                        inv_rules[tp][v2].append((key, k2))
+        return inv_rules
 
-    def get_weight(self, node_a, node_b):
+    def invert_rel(self, rel_type='family'):
         """
-        Given two nodes of a graph, build a relation text from the store
-        :param node_a: networkx node, e_1
-        :param node_b: networkx node, e_2
-        :return: weight of the relation
-        """
-        # determine the relation
-        try:
-            path = nx.shortest_path(self.family, node_a, node_b)
-            if len(path) == 2:
-                # direct path
-                weight = self.family[node_a][node_b]['weight']
-                return weight
-            else:
-                # indirect path
-                weight = sum([self.family[na][nb]['weight'] for na, nb in pairwise(path)])
-                return weight
-        except nx.NetworkXNoPath as e:
-            # no direct path exists, check if they are siblings
-            for sibling in self.siblings:
-                if node_a in sibling and node_b in sibling:
-                    weight = 0
-                    return weight
-            return -1
-
-
-    def stringify(self, node_a, node_b):
-        """
-        Stitch together relationships
-        :param node_a:
-        :param node_b:
+        Invert the relations
         :return:
         """
-        # if edge (node_a -> node_b) is not present in forward graph,
-        # switch them
-        flip = False
-        if not self.connected_forward.has_edge(node_a, node_b):
-            tmp = node_a
-            node_a = node_b
-            node_b = tmp
-            flip = True
+        if rel_type not in self.inv_rules:
+            return None
+        inv_family = copy.deepcopy(self.anc.family)
+        for edge, rel in self.anc.family.items():
+            relation = rel[rel_type]
+            if relation in self.inv_rules[rel_type]:
+                inv_rel = self.inv_rules[rel_type][relation]
+                if (edge[1], edge[0]) not in inv_family:
+                    inv_family[(edge[1], edge[0])] = {}
+                inv_family[(edge[1], edge[0])][rel_type] = inv_rel
+        self.anc.family = inv_family
+
+    def equivalence_rel(self, rel_type='family'):
+        """
+        Use equivalence relations
+        :return:
+        """
+        if rel_type not in self.eq_rules:
+            return None
+        n_family = copy.deepcopy(self.anc.family)
+        for edge, rel in self.anc.family.items():
+            relation = rel[rel_type]
+            if relation in self.eq_rules[rel_type]:
+                eq_rel = self.eq_rules[rel_type][relation]
+                n_family[(edge[0],edge[1])][rel_type] = eq_rel
+        self.anc.family = n_family
+
+    def symmetry_rel(self, rel_type='family'):
+        """
+        Use equivalence relations
+        :return:
+        """
+        if rel_type not in self.sym_rules:
+            return None
+        n_family = copy.deepcopy(self.anc.family)
+        for edge, rel in self.anc.family.items():
+            relation = rel[rel_type]
+            if relation in self.sym_rules[rel_type]:
+                sym_rel = self.sym_rules[rel_type][relation]
+                if (edge[1], edge[0]) not in n_family:
+                    n_family[(edge[1], edge[0])] = {}
+                n_family[(edge[1], edge[0])][rel_type] = sym_rel
+        self.anc.family = n_family
+
+
+    def compose_rel(self, edge_1, edge_2, rel_type='family', verbose=False):
+        """
+        Given an edge pair, add the edges into a single edge following the rules
+        in the dictionary
+        :param edge_1: (x,z)
+        :param edge_2: (z,y)
+        :param rel_type:
+        :return: (x,y)
+        """
+        # dont allow self edges
+        if edge_1[0] == edge_1[1]:
+            return None
+        if edge_2[0] == edge_2[1]:
+            return None
+        if edge_1[1] == edge_2[0] and edge_1[0] != edge_2[1]:
+            n_edge = (edge_1[0], edge_2[1])
+            if n_edge not in self.anc.family and \
+                    (edge_1 in self.anc.family and
+                     self.anc.family[edge_1][rel_type] in self.comp_rules[rel_type]):
+                if edge_2 in self.anc.family and \
+                        self.anc.family[edge_2][rel_type] in self.comp_rules[rel_type][self.anc.family[edge_1][rel_type]]:
+                    n_rel = self.comp_rules[rel_type][self.anc.family[edge_1][rel_type]][self.anc.family[edge_2][rel_type]]
+                    if n_edge not in self.anc.family:
+                        self.anc.family[n_edge] = {}
+                    self.anc.family[n_edge][rel_type] = n_rel
+                    if verbose:
+                        print(edge_1, edge_2, n_rel)
+                    return n_edge
+        return None
+
+    def almost_complete(self,edge):
+        """
+        Build an almost complete graph by iteratively applying the rules
+        Recursively apply rules and invert
+        :return:
+        """
+        # apply symmetric, equivalence and inverse rules
+        self.invert_rel()
+        self.equivalence_rel()
+        self.symmetry_rel()
+        # apply compositional rules
+        keys = list(self.anc.family.keys())
+        edge_1 = [self.compose_rel(e, edge) for e in keys if e[1] == edge[0]]
+        edge_2 = [self.compose_rel(edge, e) for e in keys if e[0] == edge[1]]
+        edge_1 = list(filter(None.__ne__, edge_1))
+        edge_2 = list(filter(None.__ne__, edge_2))
+        for e in edge_1:
+            self.almost_complete(e)
+        for e in edge_2:
+            self.almost_complete(e)
+
+    def apply_almost_complete(self):
+        """
+        For each edge apply ``almost_complete``
+        :return:
+        """
+        for i in range(len(self.anc.family_data)):
+            for j in range(len(self.anc.family_data)):
+                if i != j:
+                    self.almost_complete((i, j))
+
+    def build(self):
+        """
+        Build the stories and targets for the current family configuration
+        and save it in memory. These will be used later for post-processing
+        :param num_rel:
+        :return:
+        """
+        available_edges = set([k for k, v in self.anc.family.items()]) - self.done_edges
+        for edge in available_edges:
+            story, proof_trace = self.derive([edge], k=self.num_rel-1)
+            if len(story) == self.num_rel:
+                self.puzzles[self.puzzle_ct] = {
+                    'edge': edge,
+                    'story': story,
+                    'proof': proof_trace
+                }
+                self.puzzle_ct += 1
+
+    def add_facts(self):
+        """
+            For each stored puzzle, add different types of facts
+                - 1 : Provide supporting facts. After creating the essential fact graph, expand on any
+                k number of edges (randomly)
+                - 2: Irrelevant facts: after creating the relevant fact graph, expand on an edge,
+                 but only provide dangling expansions
+                - 3: Disconnected facts: along with relevant facts, provide a tree which is completely
+                separate from the proof path
+                - 4: Random attributes: school, place of birth, etc.
+        :return:
+        """
+        for puzzle_id, puzzle in self.puzzles.items():
+            if self.args.noise_support:
+                # Supporting facts
+                story = puzzle['story']
+                extra_story = []
+                for se in story:
+                    e = self.expand(se)
+                    if e:
+                        if puzzle['edge'] not in e and len(set(e).intersection(set(story))) == 0 and len(set(e).intersection(set(extra_story))) == 0:
+                            extra_story.extend(e)
+                self.puzzles[puzzle_id]['fact_1'] = extra_story
+            if self.args.noise_irrelevant:
+                # Irrelevant facts
+                story = puzzle['story']
+                num_edges = len(story)
+                sampled_edge = random.choice(story)
+                extra_story = []
+                for i in range(num_edges):
+                    tmp = sampled_edge
+                    pair = self.expand(sampled_edge)
+                    if pair:
+                        for e in pair:
+                            if e != puzzle['edge']:
+                                extra_story.append(e)
+                                sampled_edge = e
+                    if tmp == sampled_edge:
+                        sampled_edge = random.choice(story)
+                self.puzzles[puzzle_id]['fact_2'] = extra_story
+            if self.args.noise_disconnected:
+                # Disconnected facts
+                story = puzzle['story']
+                nodes_story = set([y for x in list(story) for y in x])
+                nodes_not_in_story = set(self.anc.family_data.keys()) - nodes_story
+                possible_edges = [(x,y) for x,y in it.combinations(list(nodes_not_in_story), 2) if (x,y) in self.anc.family]
+                num_edges = random.choice(range(1, len(possible_edges)))
+                possible_edges = random.sample(possible_edges, num_edges)
+                self.puzzles[puzzle_id]['fact_3'] = possible_edges
+            if self.args.noise_attributes:
+                num_attr = random.choice(range(1, len(self.store.attribute_store)+1))
+                story = puzzle['story']
+                ents = [se[0] for se in story]
+                ents.append(story[-1][-1])
+                noise = []
+                for ent in ents:
+                    node = self.anc.family_data[ent]
+                    n_att = [v for k,v in node.attributes.items()]
+                    noise.extend(random.sample(n_att, num_attr))
+                self.puzzles[puzzle_id]['text_fact_4'] = noise
+
+
+    def expand(self, edge, tp='family'):
+        """
+        Given an edge, break the edge into two compositional edges from the given
+        family graph. Eg, if input is (x,y), break the edge into (x,z) and (z,y)
+        following the rules
+        :param edge: Edge to break
+        :param ignore_edges: Edges to ignore while breaking an edge. Used to ignore loops
+        :param k: if k == 0, stop recursing
+        :return:
+        """
+        relation = self.anc.family[edge][tp]
+        if relation not in self.comp_rules_inv[tp]:
+            return None
+        rules = list(self.comp_rules_inv[tp][relation])
+        while len(rules) > 0:
+            rule = random.choice(rules)
+            rules.remove(rule)
+            for node in self.anc.family_data.keys():
+                e1 = (edge[0], node)
+                e2 = (node, edge[1])
+                if e1 in self.anc.family and self.anc.family[e1][tp] == rule[0] \
+                        and e2 in self.anc.family and self.anc.family[e2][tp] == rule[1]:
+                    return [e1, e2]
+        return None
+
+    def derive(self, edge_list, k=3):
+        """
+        Given a list of edges, expand elements from the edge until we reach k
+        :param edge_list:
+        :param k:
+        :return:
+        """
+        proof_trace = []
+        seen = set()
+        while k>0:
+            if len(set(edge_list)) - len(seen) == 0:
+                break
+            e = random.choice(list(set(edge_list) - seen))
+            seen.add(e)
+            ex_e = self.expand(e)
+            if ex_e and (ex_e[0] not in seen and ex_e[1] not in seen and ex_e[0][::-1] not in seen and ex_e[1][::-1] not in seen):
+                pos = edge_list.index(e)
+                edge_list.insert(pos, ex_e[-1])
+                edge_list.insert(pos, ex_e[0])
+                edge_list.remove(e)
+                #edge_list.extend(ex_e)
+                # format proof into human readable form
+                e = self._format_edge(e)
+                ex_e = [self._format_edge(x) for x in ex_e]
+                proof_trace.append({e:ex_e})
+                k = k-1
+        return edge_list, proof_trace
+
+    def _get_edge_rel(self, edge, rel_type='family'):
         # get node attributes
-        node_a_attr = self.connected_family.node[node_a]['data']
-        node_b_attr = self.connected_family.node[node_b]['data']
-        weight = self.connected_family[node_a][node_b]['weight']
-        relation = self.inv_rel_type[weight]
-        placeholders = self.relations_obj[relation][node_b_attr.gender]
-        flip_relation = relation + '_rev'
-        if flip and flip_relation in self.relations_obj:
-            placeholders = self.relations_obj[flip_relation][node_a_attr.gender]
+        node_b_attr = self.anc.family_data[edge[1]]
+        relation = self.anc.family[edge][rel_type]
+        edge_rel = self.relations_obj[relation][node_b_attr.gender]
+        return edge_rel
+
+    def _format_edge(self, edge, rel_type='family'):
+        """
+        Given an edge (x,y), format it into (name(x), rel(x,y), name(y))
+        :param edge:
+        :return:
+        """
+        node_a_attr = self.anc.family_data[edge[0]]
+        node_b_attr = self.anc.family_data[edge[1]]
+        edge_rel = self._get_edge_rel(edge, rel_type)['rel']
+        new_edge = (node_a_attr.name, edge_rel, node_b_attr.name)
+        return new_edge
+
+    def stringify(self, edge, rel_type='family'):
+        """
+        Build story string from the edge
+        :param edge: tuple
+        :return:
+        """
+        # get node attributes
+        node_a_attr = self.anc.family_data[edge[0]]
+        node_b_attr = self.anc.family_data[edge[1]]
+        relation = self._get_edge_rel(edge, rel_type)
+        placeholders = relation['p']
         placeholder = random.choice(placeholders)
         node_a_name = node_a_attr.name
         node_b_name = node_b_attr.name
@@ -124,154 +353,42 @@ class RelationBuilder:
             node_b_name = '[{}]'.format(node_b_name)
         text = placeholder.replace('e_1', node_a_name)
         text = text.replace('e_2', node_b_name)
-        return text
+        return text + '. '
 
-    def extract_siblings(self):
+    def generate_puzzles(self):
         """
-        Extract the siblings and store them in a variable
-        Source: https://stackoverflow.com/questions/39328963/how-to-identify-unconnected-siblings-in-a-graph
-        :return: None
-        """
-        lineage = defaultdict(list)
-        siblings = []
-        for node in self.family.nodes():
-            lineage[frozenset(self.family.predecessors(node)), frozenset(self.family.successors(node))].append(node)
-        for i in lineage.values():
-            if len(i) > 1:
-                siblings.append(i)
-        return siblings
-
-    def make_story(self, mode='story', lines=-1, allowed_relations=''):
-        """
-        Generate story
-        :param mode: if story, only use "child" and "SO" relations. if abstract, only use "grand" and "sibling" relations
-        :param allowed_relations: Allowed relations is a string separated by comma on which relations should feature in the abstract
-        :return: text of the story
-        """
-        allowed_relations = allowed_relations.split(',')
-        allowed_relations = list(filter(None, allowed_relations))
-        if len(allowed_relations) == 0:
-            allowed_relations = ['sibling','grand','in-laws']
-        allowed_relations = [store.relationship_type[ar] for ar in allowed_relations]
-        nodes = list(nx.dfs_preorder_nodes(self.family, 0))
-        story = []
-        story_w = {}
-        for node_a, node_b in it.combinations(nodes, 2):
-            node_a_obj = self.family.node[node_a]['data']
-            node_b_obj = self.family.node[node_b]['data']
-            if node_a_obj.name == node_b_obj.name:
-                raise NotImplementedError("no same nodes can be in the sentence")
-            weight = self.get_weight(node_a, node_b)
-            if mode == 'story' and weight in [store.relationship_type['SO'], store.relationship_type['child']]:
-                story.append(self.stringify(node_a_obj, node_b_obj, weight))
-            elif mode == 'abstract' and weight in allowed_relations:
-                if weight not in story_w:
-                    story_w[weight] = []
-                story_w[weight].append(self.stringify(node_a_obj, node_b_obj, weight))
-        if mode == 'abstract':
-            # check if all relations are present
-            if len(allowed_relations) != len(story_w):
-                story = []
-            else:
-                story = []
-                for w in allowed_relations:
-                    if len(story_w[w]) < lines:
-                        story = []
-                        break
-                    story.extend(random.sample(story_w[w], lines))
-                #story = random.sample(story, lines)
-                if len(story) > 0:
-                    assert len(story) == lines * len(allowed_relations)
-        else:
-            story = random.sample(story, len(story))
-        story = '. '.join(story)
-        return story
-
-    def calc_all_pairs(self, num_relations=3):
-        """
-        Given a connected graph, calculate all possible pairs of
-        paths, i.e all simple paths
+        Given stored puzzles, run `stringify` over them
+        :param: extra_keys : this should contain the extra fact keys we want to add in the puzzles. We already generated
+        the extra facts using `add_facts`, we just need to stringify them.
         :return:
         """
-        nodes = list(nx.dfs_preorder_nodes(self.connected_family, 0))
-        all_pairs = []
-        for node_a, node_b in it.combinations(nodes, 2):
-            for path in nx.all_simple_paths(self.connected_family, node_a, node_b, cutoff=num_relations):
-                path_len = len(path)
-                if path_len == num_relations + 1:
-                    min_path = [path[0], path[-1]]
-                    if self.connected_family.has_edge(min_path[0],min_path[1]):
-                        all_pairs.append((node_a, node_b, path, min_path))
-                else:
-                    continue
-        # calculate path stats
-        path_lens = [len(path_pairs[2]) - 1 for path_pairs in all_pairs]
-        max_paths = max(path_lens)
-        min_paths = min(path_lens)
-        path_stats = {
-            'max_path': max_paths,
-            'min_path': min_paths,
-            'num_path': len(all_pairs),
-            'path_counts': [path_lens.count(pi) for pi in range(min_paths, max_paths + 1)]
-        }
-        return all_pairs, path_stats
+        extra_keys = []
+        if self.args.noise_support:
+            extra_keys.append('fact_1')
+        if self.args.noise_irrelevant:
+            extra_keys.append('fact_2')
+        if self.args.noise_disconnected:
+            extra_keys.append('fact_3')
+        puzzle_ids = self.puzzles.keys()
+        for pi in puzzle_ids:
+            self.puzzles[pi]['text_story'] = [self.stringify(e) for e in self.puzzles[pi]['story']]
+            self.puzzles[pi]['text_target'] = self.stringify(self.puzzles[pi]['edge'])
+            self.puzzles[pi]['target'] = self._get_edge_rel(self.puzzles[pi]['edge'])['rel']
+            for key in extra_keys:
+                self.puzzles[pi]['text_{}'.format(key)] = [self.stringify(e) for e in self.puzzles[pi][key]]
+            # replace edges with name and relations
+            self.puzzles[pi]['f_edge'] = self._format_edge(self.puzzles[pi]['edge'])
+            self.puzzles[pi]['f_story'] = [self._format_edge(x) for x in self.puzzles[pi]['story']]
 
-    def make_single_story(self, num_relations=6, num_stories=10):
+
+    def _test_story(self, story):
         """
-        In single story mode, there will be only one abstract per story
-        Idea: Select any two nodes, get its longest connected path, form the story out of the path,
-        then form the abstract from the shortest connected path
-        :param: min_relations: min path of relations to consider
-        :param: max_relations: max path of relations to consider
+        Given a list of edges of the story, test whether they are logically valid
+        (x,y),(y,z) is valid, (x,y),(x,z) is not
+        :param story: list of tuples
         :return:
         """
-        stories = []
-        abstracts = []
-        relation_path = [] # for debugging purposes
-        # for all pairs, calculate the min paths and max paths
-        all_pairs, _ = self.calc_all_pairs(num_relations=num_relations)
-        if len(all_pairs) == 0:
-            return [], []
-        # create story-abstract pairs
-        for path_pairs in all_pairs:
-            node_a, node_b, max_path, min_path = path_pairs
-            story = []
-            path_str = ''
-            for pi, (na, nb) in enumerate(pairwise(max_path)):
-                text = self.stringify(na, nb)
-                story.append(text)
-                if pi==0:
-                    story.extend(self._get_attributes(self.connected_family.node[na]['data']))
-                story.extend(self._get_attributes(self.connected_family.node[nb]['data']))
-                weight = self.inv_rel_type[self.connected_family[na][nb]['weight']]
-                if not self.connected_forward.has_edge(na, nb) and weight not in ['sibling', 'SO']:
-                    weight = 'inv-' + weight
-                path_str += ' -- <{}> -- '.format(weight)
-            #story = '. '.join(story) + '.'
-            abstract = self.stringify(node_a, node_b) + '.'
-            fw = self.inv_rel_type[self.connected_family[node_a][node_b]['weight']]
-            path_str += ' ===> {}'.format(fw)
-            stories.append(story)
-            abstracts.append(abstract)
-            relation_path.append(path_str)
-            num_stories =- 1
-
-            if num_stories == 0:
-                break
-        return stories, abstracts, relation_path
-
-    def _get_attributes(self, node: Actor):
-        """
-        Select min_attr number of attribute text
-        :param node:
-        :param min_attr:
-        :return:
-        """
-        num_attributes = len(node.attributes)
-        num_select = random.randint(self.min_distractor_relations, num_attributes)
-        sel_keys = random.sample(node.attributes.keys(), num_select)
-        sel_attributes = [v for k,v in node.attributes.items() if k in sel_keys]
-        return sel_attributes
-
+        for e_i in range(len(story) - 1):
+            assert story[e_i][-1] == story[e_i + 1][0]
 
 

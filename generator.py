@@ -1,13 +1,11 @@
 # Generate story-summary pairs
 
 from actors.ancestry import Ancestry
-from relations.approx_builder import RelationBuilder
+from relations.builder import RelationBuilder
 from tqdm import tqdm
 import random
-import pprint
 
 from args import get_args
-from utils.utils import split_train_test, write2file, sanity_check
 from store.store import Store
 import pandas as pd
 
@@ -43,51 +41,6 @@ def generate_rows(args, store):
     pb.close()
     print("{} ancestries created".format(anc_num))
     return columns, rows
-
-
-def current_config_path_stats(args):
-    """
-    Calculate the max path for the current configuration
-    :return:
-    """
-    anc = Ancestry(max_levels=args.max_levels,
-                   min_child=args.min_child,
-                   max_child=args.max_child,
-                   relationship_type=store.relationship_type)
-    taken_names = anc.taken_names
-    rb = RelationBuilder(boundary=args.boundary,
-                         min_distractor_relations=args.min_distractor_relations,
-                         backward=args.backward)
-    rb.init_family(anc)
-    all_paths, path_stats = rb.calc_all_pairs(num_relations=args.relation_length)
-    path_rel = {}
-    for path in all_paths:
-        long_path = path[2]
-        len_long_path = len(long_path)
-        if len_long_path not in path_rel:
-            path_rel[len_long_path] = []
-        path_str = ''
-        for mi in range(len_long_path - 1):
-            na = long_path[mi]
-            nb = long_path[mi + 1]
-            weight = rb.inv_rel_type[rb.connected_family[na][nb]['weight']]
-            if not rb.connected_forward.has_edge(na, nb) and weight not in ['sibling', 'SO']:
-                weight = 'inv-' + weight
-            path_str += ' -- <{}> -- '.format(weight)
-        nb = long_path[len_long_path - 1]
-        fw = rb.inv_rel_type[rb.connected_family[long_path[0]][nb]['weight']]
-        path_str += ' ===> {}'.format(fw)
-        path_rel[len_long_path].append(path_str)
-    for key, val in path_rel.items():
-        print("Relation length : {}".format(key - 1))
-        uniq_paths = set(val)
-        print("Unique paths : {}".format(len(uniq_paths)))
-        print("With gender : {}".format(len(uniq_paths) * 2))
-        if args.verbose:
-            pprint.pprint(uniq_paths)
-        #for up in uniq_paths:
-        #    print(up, val.count(up))
-    return path_stats
 
 
 def test_run(args):

@@ -29,6 +29,13 @@ You can provide general arguments as well, which are defined in the next section
 |   5  |   Family relations with all facts (2-4)  |
 |   6  |   Family relations with random attributes (v0.1 setup) |
 
+
+## Generalizability
+
+Each task mentioned above can be used for different length _k_ of the relations.
+For example, Task 1 can have a train set of k=3 and test set of k=4,5,6, etc.
+
+
 ### Generate
 
 ```
