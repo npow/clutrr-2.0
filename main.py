@@ -21,6 +21,7 @@ class Clutrr:
         args.noise_support = False
         args.noise_irrelevant = False
         args.noise_disconnected = False
+        args.noise_attributes = False
         return args
 
     def task_1(self, args):
@@ -67,6 +68,14 @@ class Clutrr:
         args.noise_disconnected = True
         args.noise_disconnected = True
         args.output += '_task5'
+        return args
+
+    def task_6(self, args):
+        """
+        Family relation with random attributes (v0.1 setup)
+        """
+        args.noise_attributes = True
+        args.output += '_task6'
         return args
 
 

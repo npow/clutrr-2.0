@@ -20,6 +20,8 @@ def get_args():
                         help="Noise type: Irrelevant facts")
     parser.add_argument("--noise_disconnected", default=False, action='store_true',
                         help="Noise type: Disconnected facts")
+    parser.add_argument("--noise_attributes", default=False, action='store_true',
+                        help="Noise type: Random attributes")
     # store locations
     parser.add_argument("--rules_store", default="rules_store.yaml", type=str, help='Rules store')
     parser.add_argument("--relations_store", default="relations_store.yaml", type=str, help='Relations store')

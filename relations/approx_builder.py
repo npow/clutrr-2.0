@@ -36,6 +36,7 @@ class RelationBuilder:
         self.anc = anc
         self.args = args
         self.rules = store.rules_store
+        self.store = store
         self.comp_rules = self.rules['compositional']
         self.inv_rules = self.rules['inverse-equivalence']
         self.sym_rules = self.rules['symmetric']
@@ -213,6 +214,7 @@ class RelationBuilder:
                  but only provide dangling expansions
                 - 3: Disconnected facts: along with relevant facts, provide a tree which is completely
                 separate from the proof path
+                - 4: Random attributes: school, place of birth, etc.
         :return:
         """
         for puzzle_id, puzzle in self.puzzles.items():
@@ -252,6 +254,18 @@ class RelationBuilder:
                 num_edges = random.choice(range(1, len(possible_edges)))
                 possible_edges = random.sample(possible_edges, num_edges)
                 self.puzzles[puzzle_id]['fact_3'] = possible_edges
+            if self.args.noise_attributes:
+                num_attr = random.choice(range(1, len(self.store.attribute_store)+1))
+                story = puzzle['story']
+                ents = [se[0] for se in story]
+                ents.append(story[-1][-1])
+                noise = []
+                for ent in ents:
+                    node = self.anc.family_data[ent]
+                    n_att = [v for k,v in node.attributes.items()]
+                    noise.extend(random.sample(n_att, num_attr))
+                self.puzzles[puzzle_id]['text_fact_4'] = noise
+
 
     def expand(self, edge, tp='family'):
         """

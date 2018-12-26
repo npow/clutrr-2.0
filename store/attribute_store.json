@@ -1,12 +1,4 @@
 {
-    "work": {
-        "options": ["Apple","Google","Facebook","Microsoft","Samsung","DeepMind"],
-        "placeholders":[
-            "e_x works at attr_x",
-            "e_x is an employee of attr_x",
-            "attr_x is where e_x goes to work"
-        ]
-    },
     "school": {
         "options": [
             "McGill","UBC","UofToronto","MIT","Stanford","UCB","Harvard","Oxford"

@@ -27,6 +27,7 @@ You can provide general arguments as well, which are defined in the next section
 |   3  |  Family relations with irrelevant facts  |
 |   4  | Family relations with disconnected facts |
 |   5  |   Family relations with all facts (2-4)  |
+|   6  |   Family relations with random attributes (v0.1 setup) |
 
 ### Generate
 

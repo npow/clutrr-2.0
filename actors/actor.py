@@ -16,7 +16,6 @@ class Actor:
         ## irrelevant attributes
         ## also make the irrelevant attributes random. Not every entity will have them all
         self.attributes = {
-            'work'      : '',
             'school'    : '',
             'location_born' : '',
             'social_media_active' : False,
@@ -34,7 +33,7 @@ class Actor:
             random_attr = '[{}]'.format(random_val)
             name = '[{}]'.format(self.name)
             random_placeholder = random.choice(val['placeholders'])
-            text = random_placeholder.replace('e_x', name).replace('attr_x', random_attr)
+            text = random_placeholder.replace('e_x', name).replace('attr_x', random_attr) + ". "
             self.attributes[key] = text
 
     def __repr__(self):

@@ -108,8 +108,8 @@ def main(args):
     df.to_csv(args.output + '.csv')
 
 if __name__ == '__main__':
-    #test_run(args)
     args = get_args()
+    #test_run(args)
     main(args)
 
 
