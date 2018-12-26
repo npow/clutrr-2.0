@@ -308,8 +308,8 @@ class RelationBuilder:
                 edge_list.remove(e)
                 #edge_list.extend(ex_e)
                 # format proof into human readable form
-                e = self._format_edge(e)
-                ex_e = [self._format_edge(x) for x in ex_e]
+                e = self._format_edge_rel(e)
+                ex_e = [self._format_edge_rel(x) for x in ex_e]
                 proof_trace.append({e:ex_e})
                 k = k-1
         return edge_list, proof_trace
@@ -321,7 +321,18 @@ class RelationBuilder:
         edge_rel = self.relations_obj[relation][node_b_attr.gender]
         return edge_rel
 
-    def _format_edge(self, edge, rel_type='family'):
+    def _format_edge(self, edge):
+        """
+        Given an edge (x,y), format it into (name(x), name(y))
+        :param edge:
+        :return:
+        """
+        node_a_attr = self.anc.family_data[edge[0]]
+        node_b_attr = self.anc.family_data[edge[1]]
+        new_edge = (node_a_attr.name, node_b_attr.name)
+        return new_edge
+
+    def _format_edge_rel(self, edge, rel_type='family'):
         """
         Given an edge (x,y), format it into (name(x), rel(x,y), name(y))
         :param edge:
@@ -372,13 +383,31 @@ class RelationBuilder:
         puzzle_ids = self.puzzles.keys()
         for pi in puzzle_ids:
             self.puzzles[pi]['text_story'] = [self.stringify(e) for e in self.puzzles[pi]['story']]
-            self.puzzles[pi]['text_target'] = self.stringify(self.puzzles[pi]['edge'])
-            self.puzzles[pi]['target'] = self._get_edge_rel(self.puzzles[pi]['edge'])['rel']
+            # either the target and query is reasoning from first and last, or memory retrieval from the given story
+            if random.uniform(0,1) > self.args.memory:
+                self.puzzles[pi]['query'] = self.puzzles[pi]['edge']
+            else:
+                self.puzzles[pi]['query'] = random.choice(self.puzzles[pi]['story'])
+            # populate the target
+            self.puzzles[pi]['target'] = self._get_edge_rel(self.puzzles[pi]['query'])['rel']
+            self.puzzles[pi]['query_text'] = self._format_edge(self.puzzles[pi]['query'])
+            self.puzzles[pi]['text_target'] = self.stringify(self.puzzles[pi]['query'])
+            # populate the noise
             for key in extra_keys:
                 self.puzzles[pi]['text_{}'.format(key)] = [self.stringify(e) for e in self.puzzles[pi][key]]
             # replace edges with name and relations
-            self.puzzles[pi]['f_edge'] = self._format_edge(self.puzzles[pi]['edge'])
-            self.puzzles[pi]['f_story'] = [self._format_edge(x) for x in self.puzzles[pi]['story']]
+            self.puzzles[pi]['f_edge'] = self._format_edge_rel(self.puzzles[pi]['edge'])
+            self.puzzles[pi]['f_story'] = [self._format_edge_rel(x) for x in self.puzzles[pi]['story']]
+
+    def generate_question(self, query):
+        """
+        Given a query edge, generate a textual question from the question placeholder bank
+        Use args.question to either generate a relational question or a yes/no question
+        :param query:
+        :return:
+        """
+        # TODO: return a question from the placeholder
+        return ''
 
 
     def _test_story(self, story):

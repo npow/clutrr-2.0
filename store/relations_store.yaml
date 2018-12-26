@@ -35,7 +35,7 @@ SO:
     rel: husband
     p: [
       e_2 is the husband of e_1,
-      The husband of e_1 is e_2
+      The husband of e_1 is e_2,
       e_2 is e_1's husband
     ]
   female:

@@ -4,7 +4,7 @@ from generator import main as gen_main
 
 class Clutrr:
     def __init__(self, args):
-        args = self._invalidate_noise(args)
+        args = self._init_vars(args)
         self.run_task(args)
 
     def run_task(self, args):
@@ -17,11 +17,12 @@ class Clutrr:
         args = task_method(args)
         gen_main(args)
 
-    def _invalidate_noise(self, args):
+    def _init_vars(self, args):
         args.noise_support = False
         args.noise_irrelevant = False
         args.noise_disconnected = False
         args.noise_attributes = False
+        args.memory = 0
         return args
 
     def task_1(self, args):
@@ -76,6 +77,26 @@ class Clutrr:
         """
         args.noise_attributes = True
         args.output += '_task6'
+        return args
+
+    def task_7(self, args):
+        """
+        Family relation with only memory retrieval
+        :param args:
+        :return:
+        """
+        args.memory = 1.0
+        args.output += '_task7'
+        return args
+
+    def task_8(self, args):
+        """
+        Family relation with mixed memory and reasoning
+        :param args:
+        :return:
+        """
+        args.memory = 0.5
+        args.output += '_task8'
         return args
 
 

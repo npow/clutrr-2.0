@@ -28,6 +28,9 @@ def get_args():
     parser.add_argument("--attribute_store", default="attribute_store.json", type=str, help='Attributes store')
     # task
     parser.add_argument("--task", default=1, type=int, help='Define which task to create dataset for')
+    parser.add_argument("--memory", default=1, type=float, help='Percentage of tasks which are just memory retrieval')
+    # question type
+    parser.add_argument("--question", default=0, type=int, help='Question type. 0 -> relational, 1 -> yes/no')
     # others
     # TODO: do we want to keep the old method of adding distractors?
     # parser.add_argument("--min_distractor_relations", default=8, type=int, help="Distractor relations about entities")

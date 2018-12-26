@@ -28,6 +28,9 @@ You can provide general arguments as well, which are defined in the next section
 |   4  | Family relations with disconnected facts |
 |   5  |   Family relations with all facts (2-4)  |
 |   6  |   Family relations with random attributes (v0.1 setup) |
+|   7  | Family relations - Memory task: retrieve the relations already defined in text 
+|   8  | Family relations - Mix of Memory and Reasoning - 1 & 7 |
+
 
 
 ## Generalizability
