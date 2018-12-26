@@ -6,9 +6,9 @@ A benchmark dataset generator to test relational reasoning on text
 
 ### Dependencies
 
-- [pandas](https://pypi.org/project/pandas/)
-- [names](https://pypi.org/project/names/)
-- [tqdm](https://pypi.org/project/tqdm/)
+- [pandas](https://pypi.org/project/pandas/) - to store and retrieve in csv
+- [names](https://pypi.org/project/names/) - to generate fancy names
+- [tqdm](https://pypi.org/project/tqdm/) - for fancy progressbars
 
 ## Tasks
 
@@ -53,9 +53,11 @@ usage: generator.py [-h] [--num_rows NUM_ROWS] [--max_levels MAX_LEVELS]
                     [--p_marry P_MARRY] [--abstracts ABSTRACTS] [--boundary]
                     [--output OUTPUT] [--relation_length RELATION_LENGTH]
                     [--noise_support] [--noise_irrelevant]
-                    [--noise_disconnected] [--rules_store RULES_STORE]
+                    [--noise_disconnected] [--noise_attributes]
+                    [--rules_store RULES_STORE]
                     [--relations_store RELATIONS_STORE]
-                    [--attribute_store ATTRIBUTE_STORE] [-v]
+                    [--attribute_store ATTRIBUTE_STORE] [--task TASK]
+                    [--memory MEMORY] [--question QUESTION] [-v]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -76,12 +78,16 @@ optional arguments:
   --noise_support       Noise type: Supporting facts
   --noise_irrelevant    Noise type: Irrelevant facts
   --noise_disconnected  Noise type: Disconnected facts
+  --noise_attributes    Noise type: Random attributes
   --rules_store RULES_STORE
                         Rules store
   --relations_store RELATIONS_STORE
                         Relations store
   --attribute_store ATTRIBUTE_STORE
                         Attributes store
+  --task TASK           Define which task to create dataset for
+  --memory MEMORY       Percentage of tasks which are just memory retrieval
+  --question QUESTION   Question type. 0 -> relational, 1 -> yes/no
   -v, --verbose         print the paths
 
 ```
