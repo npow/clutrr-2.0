@@ -90,8 +90,7 @@ def current_config_path_stats(args):
     return path_stats
 
 
-def test_run():
-    args = get_args()
+def test_run(args):
     store = Store(args)
     anc = Ancestry(args, store)
     rb = RelationBuilder(args, store, anc)
@@ -102,13 +101,17 @@ def test_run():
     pid = random.choice(list(rb.puzzles.keys()))
     print(rb.puzzles[pid])
 
-if __name__ == '__main__':
-    #test_run()
-    args = get_args()
+def main(args):
     store = Store(args)
     header, rows = generate_rows(args, store)
     df = pd.DataFrame(columns=header, data=rows)
     df.to_csv(args.output + '.csv')
+
+if __name__ == '__main__':
+    #test_run(args)
+    args = get_args()
+    main(args)
+
 
 
 

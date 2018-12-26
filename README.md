@@ -6,10 +6,15 @@ A benchmark dataset generator to test relational reasoning on text
 
 ### Dependencies
 
-- [NetworkX](https://networkx.github.io/)
 - [pandas](https://pypi.org/project/pandas/)
 - [names](https://pypi.org/project/names/)
 - [tqdm](https://pypi.org/project/tqdm/)
+
+## Tasks
+
+CLUTRR is highly modular and thus can be used for various different probing tasks. Here we document the various types of tasks
+available and the corresponding config arguments to generate them.
+
 
 ### Generate
 
@@ -57,11 +62,6 @@ optional arguments:
   -v, --verbose         print the paths
 
 ```
-
-## Tasks
-
-CLUTRR is highly modular and thus can be used for various different probing tasks. Here we document the various types of tasks
-available and the corresponding config arguments to generate them.
 
 
 
