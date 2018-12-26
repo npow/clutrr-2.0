@@ -13,8 +13,20 @@ A benchmark dataset generator to test relational reasoning on text
 ## Tasks
 
 CLUTRR is highly modular and thus can be used for various different probing tasks. Here we document the various types of tasks
-available and the corresponding config arguments to generate them.
+available and the corresponding config arguments to generate them. To
+run a task, refer the following table and run:
 
+`python main.py --task <> <args>`
+
+You can provide general arguments as well, which are defined in the next section.
+
+| Task | Description                              |
+|------|------------------------------------------|
+|   1  |   Basic family relations free of noise   |
+|   2  |  Family relations with supporting facts  |
+|   3  |  Family relations with irrelevant facts  |
+|   4  | Family relations with disconnected facts |
+|   5  |   Family relations with all facts (2-4)  |
 
 ### Generate
 
