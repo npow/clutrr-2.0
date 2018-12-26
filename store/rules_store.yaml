@@ -43,7 +43,7 @@ compositional:
       child: un
     grand:
       sibling: grand
-      inv-child: child
+      inv-child: in-law  # was child, then it was a problematic rule. if (A,child,B), (B, child, C), then (A,grand,C) + (C, inv-child, D) does not mean (A,child,D) as it could be inlaws
   work: 
     works_at : 
       works_at: coworker
