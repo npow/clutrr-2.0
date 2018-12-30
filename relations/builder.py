@@ -4,6 +4,7 @@ import random
 import itertools as it
 import copy
 from store.store import Store
+import uuid
 
 
 class RelationBuilder:
@@ -192,7 +193,8 @@ class RelationBuilder:
         for edge in available_edges:
             story, proof_trace = self.derive([edge], k=self.num_rel-1)
             if len(story) == self.num_rel:
-                self.puzzles[self.puzzle_ct] = {
+                id = str(uuid.uuid4())
+                self.puzzles[id] = {
                     'edge': edge,
                     'story': story,
                     'proof': proof_trace
