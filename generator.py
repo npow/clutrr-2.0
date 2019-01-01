@@ -4,6 +4,7 @@ from actors.ancestry import Ancestry
 from relations.builder import RelationBuilder
 from tqdm import tqdm
 import random
+import numpy as np
 
 from args import get_args
 from store.store import Store
@@ -60,7 +61,12 @@ def main(args):
     store = Store(args)
     header, rows = generate_rows(args, store)
     df = pd.DataFrame(columns=header, data=rows)
-    df.to_csv(args.output + '.csv')
+    # split test train
+    msk = np.random.rand(len(df)) > args.test
+    train_df = df[msk]
+    test_df = df[~msk]
+    train_df.to_csv(args.output + '_train.csv')
+    test_df.to_csv(args.output + '_test.csv')
 
 if __name__ == '__main__':
     args = get_args()

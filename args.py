@@ -36,5 +36,6 @@ def get_args():
     # parser.add_argument("--min_distractor_relations", default=8, type=int, help="Distractor relations about entities")
     parser.add_argument("-v","--verbose", default=False, action='store_true',
                         help='print the paths')
+    parser.add_argument("-t","--test", default=0.2, help="Testing split")
 
     return parser.parse_args()
