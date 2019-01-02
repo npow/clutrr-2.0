@@ -1,21 +1,118 @@
 # main file which defines the tasks
 from args import get_args
-from generator import main as gen_main
+from generator import generate_rows
+from store.store import Store
+import pandas as pd
+import random
+import copy
+import uuid
+import os
+import json
+import shutil
 
 class Clutrr:
     def __init__(self, args):
         args = self._init_vars(args)
         self.run_task(args)
 
+    def generate(self, choice, args, num_rows=0, data_type='train'):
+        """
+        Choose the task and the relation length
+        Return the used args for storing
+        :param choice:
+        :param args:
+        :param num_rows:
+        :param data_type:
+        :return:
+        """
+        args = copy.deepcopy(args)
+        args.num_rows = num_rows
+        args.data_type = data_type
+        task, relation_length = choice.split('.')
+        task_name = 'task_{}'.format(task)
+        task_method = getattr(self, task_name, lambda: "Task {} not implemented".format(choice))
+        args = task_method(args)
+        args.relation_length = int(relation_length)
+        store = Store(args)
+        return (generate_rows(args, store), args)
+
     def run_task(self, args):
         """
         Default dispatcher method
         """
-        choice = args.task
-        task_name = 'task_{}'.format(choice)
-        task_method = getattr(self, task_name, lambda: "Task {} not implemented".format(choice))
-        args = task_method(args)
-        gen_main(args)
+        total_rows = args.num_rows
+        train_rows = int(args.num_rows * (1-args.test_split))
+        test_rows = total_rows - train_rows
+        train_choice = args.train_task
+        test_choices = args.test_tasks.split(',')
+        # training
+        train_data = self.generate(train_choice, args, num_rows=train_rows, data_type='train')
+        test_datas = []
+        for t_choice in test_choices:
+            test_datas.append(self.generate(t_choice, args, num_rows=test_rows, data_type='test'))
+        self.store(train_data, test_datas, args)
+
+    def assign_name(self, args):
+        """
+        Create a name for the datasets:
+            - training file should end with _train
+            - testing file should end with _test
+            - each file name should have an unique hex
+        :param args:
+        :return:
+        """
+        hex = str(uuid.uuid4())
+        name = '{}_{}.csv'.format(hex, args.data_type)
+        return name
+
+    def store(self, train_data, test_data, args):
+        """
+        Take the dataset and do the following:
+        - Create a name for the files
+        - Create a folder and put the files in
+        - Write the config in a file and put it in the folder
+        - Compute the hash of the train and test files and store it in a file
+        :param train_data list of rows
+        :param test_data list of list of rows
+        :return:
+        """
+        train_rows, train_args = train_data
+        train_df = pd.DataFrame(columns=train_rows[0], data=train_rows[1])
+        all_config = {}
+        train_fl_name = self.assign_name(train_args)
+        all_config['train_task'] = {args.train_task: train_fl_name}
+        all_config['test_tasks'] = {}
+        test_fl_names = []
+        test_dfs = []
+        all_config['args'] = {}
+        all_config['args'][train_fl_name] = vars(train_args)
+        test_tasks = args.test_tasks.split(',')
+        for i,td in enumerate(test_data):
+            test_rows, test_args = td
+            tname = self.assign_name(test_args)
+            test_fl_names.append(tname)
+            all_config[tname] = vars(test_args)
+            test_dfs.append(pd.DataFrame(columns=test_rows[0], data=test_rows[1]))
+            all_config['test_tasks'][test_tasks[i]] = tname
+        base_path = os.getcwd()
+        # derive folder name as a random selection of characters
+        directory = ''
+        while True:
+            folder_name = 'data_{}'.format(str(uuid.uuid4())[:8])
+            directory = os.path.join(base_path, 'data', folder_name)
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+                break
+        train_df.to_csv(os.path.join(directory, train_fl_name))
+        for i,test_fl_name in enumerate(test_fl_names):
+            test_df = test_dfs[i]
+            test_df.to_csv(os.path.join(directory, test_fl_name))
+        # dump config
+        json.dump(all_config, open(os.path.join(directory, 'config.json'),'w'))
+        shutil.make_archive(directory, 'zip', directory)
+
+        print("Created dataset in {}".format(directory))
+
 
     def _init_vars(self, args):
         args.noise_support = False

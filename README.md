@@ -16,7 +16,11 @@ CLUTRR is highly modular and thus can be used for various different probing task
 available and the corresponding config arguments to generate them. To
 run a task, refer the following table and run:
 
-`python main.py --task <> <args>`
+`python main.py --train_task <> --test_tasks <> <args>`
+
+Where, `train_task` is in the form of `<task_id>.<relation_length>`, and `test_tasks` is a comma separated list of the same form. For eg:
+
+`python main.py --train_task 1.3 --test_tasks 1.3,1.4
 
 You can provide general arguments as well, which are defined in the next section.
 
@@ -32,14 +36,16 @@ You can provide general arguments as well, which are defined in the next section
 |   8  | Family relations - Mix of Memory and Reasoning - 1 & 7 |
 
 
+Generated data is stored in `data/` folder.
 
 ## Generalizability
 
 Each task mentioned above can be used for different length _k_ of the relations.
-For example, Task 1 can have a train set of k=3 and test set of k=4,5,6, etc.
+For example, Task 1 can have a train set of k=3 and test set of k=4,5,6, etc. See the
+above section in how to provide such arguments quickly.
 
 
-### Generate
+## General Usage
 
 ```
 python generator.py
@@ -48,16 +54,17 @@ python generator.py
 #### Usage
 
 ```
-usage: generator.py [-h] [--num_rows NUM_ROWS] [--max_levels MAX_LEVELS]
-                    [--min_child MIN_CHILD] [--max_child MAX_CHILD]
-                    [--p_marry P_MARRY] [--abstracts ABSTRACTS] [--boundary]
-                    [--output OUTPUT] [--relation_length RELATION_LENGTH]
-                    [--noise_support] [--noise_irrelevant]
-                    [--noise_disconnected] [--noise_attributes]
-                    [--rules_store RULES_STORE]
-                    [--relations_store RELATIONS_STORE]
-                    [--attribute_store ATTRIBUTE_STORE] [--task TASK]
-                    [--memory MEMORY] [--question QUESTION] [-v]
+usage: main.py [-h] [--num_rows NUM_ROWS] [--max_levels MAX_LEVELS]
+               [--min_child MIN_CHILD] [--max_child MAX_CHILD]
+               [--p_marry P_MARRY] [--abstracts ABSTRACTS] [--boundary]
+               [--output OUTPUT] [--relation_length RELATION_LENGTH]
+               [--noise_support] [--noise_irrelevant] [--noise_disconnected]
+               [--noise_attributes] [--rules_store RULES_STORE]
+               [--relations_store RELATIONS_STORE]
+               [--attribute_store ATTRIBUTE_STORE] [--train_task TRAIN_TASK]
+               [--test_tasks TEST_TASKS] [--memory MEMORY]
+               [--data_type DATA_TYPE] [--question QUESTION] [-v]
+               [-t TEST_SPLIT]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -85,10 +92,19 @@ optional arguments:
                         Relations store
   --attribute_store ATTRIBUTE_STORE
                         Attributes store
-  --task TASK           Define which task to create dataset for
+  --train_task TRAIN_TASK
+                        Define which task to create dataset for, including the
+                        relationship length.
+  --test_tasks TEST_TASKS
+                        Define which tasks including the relation lengths to
+                        test for, comma separaated
   --memory MEMORY       Percentage of tasks which are just memory retrieval
+  --data_type DATA_TYPE
+                        train/test
   --question QUESTION   Question type. 0 -> relational, 1 -> yes/no
   -v, --verbose         print the paths
+  -t TEST_SPLIT, --test_split TEST_SPLIT
+                        Testing split
 
 ```
 

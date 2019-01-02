@@ -27,8 +27,10 @@ def get_args():
     parser.add_argument("--relations_store", default="relations_store.yaml", type=str, help='Relations store')
     parser.add_argument("--attribute_store", default="attribute_store.json", type=str, help='Attributes store')
     # task
-    parser.add_argument("--task", default=1, type=int, help='Define which task to create dataset for')
+    parser.add_argument("--train_task", default="1.3", type=str, help='Define which task to create dataset for, including the relationship length.')
+    parser.add_argument("--test_tasks", default="1.3", type=str, help='Define which tasks including the relation lengths to test for, comma separaated')
     parser.add_argument("--memory", default=1, type=float, help='Percentage of tasks which are just memory retrieval')
+    parser.add_argument("--data_type", default="train", type=str, help='train/test')
     # question type
     parser.add_argument("--question", default=0, type=int, help='Question type. 0 -> relational, 1 -> yes/no')
     # others
@@ -36,6 +38,6 @@ def get_args():
     # parser.add_argument("--min_distractor_relations", default=8, type=int, help="Distractor relations about entities")
     parser.add_argument("-v","--verbose", default=False, action='store_true',
                         help='print the paths')
-    parser.add_argument("-t","--test", default=0.2, help="Testing split")
+    parser.add_argument("-t","--test_split", default=0.2, help="Testing split")
 
     return parser.parse_args()
