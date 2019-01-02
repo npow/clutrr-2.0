@@ -61,7 +61,7 @@ class Clutrr:
         :param args:
         :return:
         """
-        hex = str(uuid.uuid4())
+        hex = str(uuid.uuid4())[:8]
         name = '{}_{}.csv'.format(hex, args.data_type)
         return name
 
