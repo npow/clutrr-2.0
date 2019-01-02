@@ -17,7 +17,7 @@ def generate_rows(args, store):
     pb = tqdm(total=args.num_rows)
     num_stories = args.num_rows
     stories_left = num_stories
-    columns = ['id', 'story', 'query', 'text_query', 'target', 'text_target', 'clean_story', 'proof_state']
+    columns = ['id', 'story', 'query', 'text_query', 'target', 'text_target', 'clean_story', 'proof_state', 'e_comb']
     rows = []
     anc_num = 0
     while stories_left > 0:
@@ -38,7 +38,7 @@ def generate_rows(args, store):
             story = ''.join(story)
             text_question = rb.generate_question(puzzle['query'])
             rows.append([pid, story, puzzle['query_text'], text_question, puzzle['target'], puzzle['text_target'],
-                         clean_story, puzzle['proof']])
+                         clean_story, puzzle['proof'], puzzle['f_comb']])
             pb.update(1)
         stories_left = stories_left - len(rb.puzzles)
     pb.close()

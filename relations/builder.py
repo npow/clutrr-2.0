@@ -400,6 +400,7 @@ class RelationBuilder:
             # replace edges with name and relations
             self.puzzles[pi]['f_edge'] = self._format_edge_rel(self.puzzles[pi]['edge'])
             self.puzzles[pi]['f_story'] = [self._format_edge_rel(x) for x in self.puzzles[pi]['story']]
+            self.puzzles[pi]['f_comb'] = '-'.join([self._get_edge_rel(x)['rel'] for x in self.puzzles[pi]['story']])
 
     def generate_question(self, query):
         """
