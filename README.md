@@ -102,6 +102,7 @@ optional arguments:
   --data_type DATA_TYPE
                         train/test
   --question QUESTION   Question type. 0 -> relational, 1 -> yes/no
+  --equal EQUAL         Make sure each pattern is equal. Warning: Time complexity of generation increases if this flag is set.
   -v, --verbose         print the paths
   -t TEST_SPLIT, --test_split TEST_SPLIT
                         Testing split

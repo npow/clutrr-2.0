@@ -28,7 +28,7 @@ def generate_rows(args, store):
         rb.build()
         rb.add_facts()
         # keeping a count of generated patterns to make sure we have homogenous distribution
-        if len(f_comb_count) > 0:
+        if len(f_comb_count) > 0 and args.equal:
             min_c = min([v for k,v in f_comb_count.items()])
             weight = {k:(min_c/v) for k,v in f_comb_count.items()}
             rb.generate_puzzles(weight)
