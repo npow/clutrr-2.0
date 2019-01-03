@@ -17,7 +17,7 @@ def generate_rows(args, store):
     pb = tqdm(total=args.num_rows)
     num_stories = args.num_rows
     stories_left = num_stories
-    columns = ['id', 'story', 'query', 'text_query', 'target', 'text_target', 'clean_story', 'proof_state', 'e_comb']
+    columns = ['id', 'story', 'query', 'text_query', 'target', 'text_target', 'clean_story', 'proof_state', 'f_comb']
     f_comb_count = {}
     rows = []
     anc_num = 0

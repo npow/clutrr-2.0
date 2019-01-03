@@ -41,5 +41,7 @@ def get_args():
     parser.add_argument("-t","--test_split", default=0.2, help="Testing split")
     parser.add_argument("--equal", default=False, action='store_true',
                         help="Make sure each pattern is equal. Warning: Time complexity of generation increases if this flag is set.")
+    parser.add_argument("--analyze", default=False, action='store_true', help="Analyze generated files")
+
 
     return parser.parse_args()

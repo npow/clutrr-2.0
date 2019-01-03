@@ -3,7 +3,7 @@ from args import get_args
 from generator import generate_rows
 from store.store import Store
 import pandas as pd
-import random
+import glob
 import copy
 import uuid
 import os
@@ -112,7 +112,19 @@ class Clutrr:
         shutil.make_archive(directory, 'zip', directory)
 
         print("Created dataset in {}".format(directory))
+        self.analyze_data(directory)
 
+    def analyze_data(self, directory):
+        all_files = glob.glob(os.path.join(directory,'*.csv'))
+        for fl in all_files:
+            print("Analyzing file {}".format(fl))
+            df = pd.read_csv(fl)
+            uniq_patterns = len(df['f_comb'].value_counts())
+            print("-> {} rows".format(len(df)))
+            print("-> {} unique patterns".format(uniq_patterns))
+            if '_train' in fl:
+                print(df['f_comb'].value_counts().to_string())
+        print("Analysis complete")
 
     def _init_vars(self, args):
         args.noise_support = False
