@@ -199,7 +199,47 @@ class RelationBuilder:
                     'story': story,
                     'proof': proof_trace
                 }
+                self.puzzles[id]['f_comb'] = '-'.join([self._get_edge_rel(x)['rel'] for x in story])
                 self.puzzle_ct += 1
+
+
+    def _value_counts(self):
+        pztype = {}
+        for pid, puzzle in self.puzzles.items():
+            f_comb = puzzle['f_comb']
+            if f_comb not in pztype:
+                pztype[f_comb] = []
+            pztype[f_comb].append(pid)
+        return pztype
+
+    def prune_puzzles(self, weight=None):
+        """
+        In order to keep all puzzles homogenously distributed ("f_comb"), we calcuate
+        the count of all type of puzzles, and retain the minimum count
+        :param weight: a dict of weights f_comb:p where 0 <= p <= 1
+        :return:
+        """
+        pztype = self._value_counts()
+        pztype_min_count = min([len(v) for k,v in pztype.items()])
+        keep_puzzles = []
+        for f_comb, pids in pztype.items():
+            keep_puzzles.extend(random.sample(pids, pztype_min_count))
+        not_keep = set(self.puzzles.keys()) - set(keep_puzzles)
+        for pid in not_keep:
+            del self.puzzles[pid]
+        if weight:
+            pztype = self._value_counts()
+            # fill in missing weights
+            for f_comb, pids in pztype.items():
+                if f_comb not in weight:
+                    weight[f_comb] = 1.0
+            keep_puzzles = []
+            for f_comb,pids in pztype.items():
+                if weight[f_comb] == 1.0:
+                    keep_puzzles.extend(pids)
+            not_keep = set(self.puzzles.keys()) - set(keep_puzzles)
+            for pid in not_keep:
+                del self.puzzles[pid]
 
     def add_facts(self):
         """
@@ -368,13 +408,14 @@ class RelationBuilder:
         text = text.replace('e_2', node_b_name)
         return text + '. '
 
-    def generate_puzzles(self):
+    def generate_puzzles(self, weight=None):
         """
         Given stored puzzles, run `stringify` over them
         :param: extra_keys : this should contain the extra fact keys we want to add in the puzzles. We already generated
         the extra facts using `add_facts`, we just need to stringify them.
         :return:
         """
+        self.prune_puzzles(weight)
         extra_keys = []
         if self.args.noise_support:
             extra_keys.append('fact_1')
@@ -400,7 +441,6 @@ class RelationBuilder:
             # replace edges with name and relations
             self.puzzles[pi]['f_edge'] = self._format_edge_rel(self.puzzles[pi]['edge'])
             self.puzzles[pi]['f_story'] = [self._format_edge_rel(x) for x in self.puzzles[pi]['story']]
-            self.puzzles[pi]['f_comb'] = '-'.join([self._get_edge_rel(x)['rel'] for x in self.puzzles[pi]['story']])
 
     def generate_question(self, query):
         """

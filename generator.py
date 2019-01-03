@@ -18,6 +18,7 @@ def generate_rows(args, store):
     num_stories = args.num_rows
     stories_left = num_stories
     columns = ['id', 'story', 'query', 'text_query', 'target', 'text_target', 'clean_story', 'proof_state', 'e_comb']
+    f_comb_count = {}
     rows = []
     anc_num = 0
     while stories_left > 0:
@@ -26,7 +27,13 @@ def generate_rows(args, store):
         rb = RelationBuilder(args, store, anc)
         rb.build()
         rb.add_facts()
-        rb.generate_puzzles()
+        # keeping a count of generated patterns to make sure we have homogenous distribution
+        if len(f_comb_count) > 0:
+            min_c = min([v for k,v in f_comb_count.items()])
+            weight = {k:(min_c/v) for k,v in f_comb_count.items()}
+            rb.generate_puzzles(weight)
+        else:
+            rb.generate_puzzles()
         # now we have got the puzzles, add them to the story
         for pid, puzzle in rb.puzzles.items():
             story = puzzle['text_story']
@@ -37,6 +44,9 @@ def generate_rows(args, store):
             story = random.sample(story, len(story))
             story = ''.join(story)
             text_question = rb.generate_question(puzzle['query'])
+            if puzzle['f_comb'] not in f_comb_count:
+                f_comb_count[puzzle['f_comb']] = 0
+            f_comb_count[puzzle['f_comb']] +=1
             rows.append([pid, story, puzzle['query_text'], text_question, puzzle['target'], puzzle['text_target'],
                          clean_story, puzzle['proof'], puzzle['f_comb']])
             pb.update(1)
