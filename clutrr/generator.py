@@ -1,13 +1,13 @@
 # Generate story-summary pairs
 
-from actors.ancestry import Ancestry
-from relations.builder import RelationBuilder
+from clutrr.actors.ancestry import Ancestry
+from clutrr.relations.builder import RelationBuilder
 from tqdm import tqdm
 import random
 import numpy as np
 
-from args import get_args
-from store.store import Store
+from clutrr.args import get_args
+from clutrr.store.store import Store
 import pandas as pd
 
 #store = Store()

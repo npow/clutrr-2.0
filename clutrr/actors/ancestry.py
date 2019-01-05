@@ -1,10 +1,9 @@
 import numpy as np
 import names
-import pdb
 import copy
 import random
-from actors.actor import Actor, Entity
-from store.store import Store
+from clutrr.actors.actor import Actor, Entity
+from clutrr.store.store import Store
 
 #store = Store()
 

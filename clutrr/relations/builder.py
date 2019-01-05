@@ -3,7 +3,7 @@
 import random
 import itertools as it
 import copy
-from store.store import Store
+from clutrr.store.store import Store
 import uuid
 
 

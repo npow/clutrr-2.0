@@ -1,7 +1,7 @@
 # main file which defines the tasks
-from args import get_args
-from generator import generate_rows
-from store.store import Store
+from clutrr.args import get_args
+from clutrr.generator import generate_rows
+from clutrr.store.store import Store
 import pandas as pd
 import glob
 import copy
@@ -94,7 +94,7 @@ class Clutrr:
             all_config[tname] = vars(test_args)
             test_dfs.append(pd.DataFrame(columns=test_rows[0], data=test_rows[1]))
             all_config['test_tasks'][test_tasks[i]] = tname
-        base_path = os.getcwd()
+        base_path = os.path.abspath(os.pardir)
         # derive folder name as a random selection of characters
         directory = ''
         while True:

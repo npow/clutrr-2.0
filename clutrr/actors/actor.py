@@ -1,8 +1,4 @@
 import random
-import json
-from store.store import Store
-
-#store = Store()
 
 class Actor:
     """
