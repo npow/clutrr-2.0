@@ -12,12 +12,12 @@ import pandas as pd
 
 #store = Store()
 
-def generate_rows(args, store):
+def generate_rows(args, store, task_name):
     # generate
     pb = tqdm(total=args.num_rows)
     num_stories = args.num_rows
     stories_left = num_stories
-    columns = ['id', 'story', 'query', 'text_query', 'target', 'text_target', 'clean_story', 'proof_state', 'f_comb']
+    columns = ['id', 'story', 'query', 'text_query', 'target', 'text_target', 'clean_story', 'proof_state', 'f_comb', 'task_name']
     f_comb_count = {}
     rows = []
     anc_num = 0
@@ -48,7 +48,7 @@ def generate_rows(args, store):
                 f_comb_count[puzzle['f_comb']] = 0
             f_comb_count[puzzle['f_comb']] +=1
             rows.append([pid, story, puzzle['query_text'], text_question, puzzle['target'], puzzle['text_target'],
-                         clean_story, puzzle['proof'], puzzle['f_comb']])
+                         clean_story, puzzle['proof'], puzzle['f_comb'], task_name])
             pb.update(1)
         stories_left = stories_left - len(rb.puzzles)
     pb.close()

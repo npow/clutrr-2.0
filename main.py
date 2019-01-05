@@ -34,7 +34,7 @@ class Clutrr:
         args = task_method(args)
         args.relation_length = int(relation_length)
         store = Store(args)
-        return (generate_rows(args, store), args)
+        return (generate_rows(args, store, task_name), args)
 
     def run_task(self, args):
         """
