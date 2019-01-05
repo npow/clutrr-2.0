@@ -52,7 +52,7 @@ class Clutrr:
             test_datas.append(self.generate(t_choice, args, num_rows=test_rows, data_type='test'))
         self.store(train_data, test_datas, args)
 
-    def assign_name(self, args):
+    def assign_name(self, args, task_name):
         """
         Create a name for the datasets:
             - training file should end with _train
@@ -61,8 +61,8 @@ class Clutrr:
         :param args:
         :return:
         """
-        hex = str(uuid.uuid4())[:8]
-        name = '{}_{}.csv'.format(hex, args.data_type)
+        #hex = str(uuid.uuid4())[:8]
+        name = '{}_{}.csv'.format(task_name, args.data_type)
         return name
 
     def store(self, train_data, test_data, args):
@@ -79,7 +79,7 @@ class Clutrr:
         train_rows, train_args = train_data
         train_df = pd.DataFrame(columns=train_rows[0], data=train_rows[1])
         all_config = {}
-        train_fl_name = self.assign_name(train_args)
+        train_fl_name = self.assign_name(train_args, args.train_task)
         all_config['train_task'] = {args.train_task: train_fl_name}
         all_config['test_tasks'] = {}
         test_fl_names = []
@@ -89,7 +89,7 @@ class Clutrr:
         test_tasks = args.test_tasks.split(',')
         for i,td in enumerate(test_data):
             test_rows, test_args = td
-            tname = self.assign_name(test_args)
+            tname = self.assign_name(test_args, test_tasks[i])
             test_fl_names.append(tname)
             all_config[tname] = vars(test_args)
             test_dfs.append(pd.DataFrame(columns=test_rows[0], data=test_rows[1]))
