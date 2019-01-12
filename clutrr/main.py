@@ -2,6 +2,7 @@
 from clutrr.args import get_args
 from clutrr.generator import generate_rows
 from clutrr.store.store import Store
+from clutrr.utils.web import generate_webpage
 import pandas as pd
 import glob
 import copy
@@ -212,4 +213,4 @@ class Clutrr:
 if __name__ == '__main__':
     args = get_args()
     Clutrr(args)
-
+    generate_webpage('/home/mlp/ksinha4/clutrr/data')
