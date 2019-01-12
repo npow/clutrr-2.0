@@ -88,12 +88,11 @@ class DB:
             rec_found = True
         if not using_test and not rec_found:
             # if no candidate peer is found, default to test
-            record_cursor = self.mturk.find({'worker_id': self.test_worker}, sort=[("used",1)])
+            record_cursor = self.mturk.find({'worker_id': self.test_worker},
+                    sort=[("used",1)])
         if record_cursor.count() > 0:
             record = list(record_cursor)[0]
-        if record:
-            self.mturk.update_one({'_id': record['_id']}, {'$inc': {'used': 1}}, upsert=False)
-        else:
+        if not record:
             # did not find either candidate peer nor test, raise error
             raise FileNotFoundError("no candidate found in db")
         return record
@@ -107,7 +106,7 @@ class DB:
         """
         assert 'reviews' in record
         assert 'reviewed_by' in record
-        record['reviews'] += record['reviews'] + rating
+        record['used'] = len(record['reviewed_by']) + 1
         record['reviewed_by'].append({worker_id: rating})
         self.mturk.update_one({'_id': record['_id']}, {"$set": record}, upsert=False)
 
