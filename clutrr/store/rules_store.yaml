@@ -44,7 +44,8 @@ compositional:
       inv-child: inv-child
     grand:
       sibling: grand
-      inv-child: in-law  # was child, then it was a problematic rule. if (A,child,B), (B, child, C), then (A,grand,C) + (C, inv-child, D) does not mean (A,child,D) as it could be inlaws
+      # inv-child: in-law  # was child, then it was a problematic rule. if (A,child,B), (B, child, C), then (A,grand,C) + (C, inv-child, D) does not mean (A,child,D) as it could be inlaws
+      # even this is problematic. Grandson + father could turn up to in-law which may or maynot be true.
   work: 
     works_at : 
       works_at: coworker

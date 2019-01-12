@@ -123,4 +123,4 @@ dmypy.json
 # data
 !data/.gikeep
 data/
-
+mturk_data/
