@@ -13,9 +13,11 @@ import datetime
 import pdb
 
 KOUSTUV_ID = "A1W0QQF93UM08"
+PORT = 27017
+CLUTRR_BASE = '/home/koustuv/clutrr-2.0/'
 
 class DB:
-    def __init__(self, host='localhost', port=27017, collection='amt_study', test_prob=0.2):
+    def __init__(self, host='localhost', port=PORT, collection='amt_study', test_prob=0.2):
         # initiate the db connection
         self.client = MongoClient(host, port)
         #print("Connected to backend MongoDB data at {}:{}".format(host, port))
@@ -111,6 +113,8 @@ class DB:
         self.mturk.update_one({'_id': record['_id']}, {"$set": record}, upsert=False)
 
     def save_annotation(self, record, worker_id):
+        """ Save the user annotation
+        """
         if 'worker_id' not in record:
             record['worker_id'] = ''
         record['worker_id'] = worker_id
@@ -120,13 +124,14 @@ class DB:
         if 'reviewed_by' not in record:
             record['reviewed_by'] = []
         record['reviewed_by'] = []
+        record['used'] = 0
         # change the id
         record['gold_id'] = record['_id']
         del record['_id']
         self.mturk.insert_one(record)
 
     def import_data(self):
-        path = '/home/ml/ksinha4/mlp/clutrr/mturk_data/*'
+        path = CLUTRR_BASE + 'mturk_data/*'
         print("Checking the path: {}".format(path))
         files = glob.glob(path)
         print("Files found : {}".format(len(files)))
@@ -136,15 +141,20 @@ class DB:
             if fl.endswith('mturk.csv'):
                 self.upload(fl, db='mturk')
 
-    def export(self, base_path='/home/ml/ksinha4/mlp/clutrr/mturk_data/'):
+    def export(self, base_path=CLUTRR_BASE):
         """
         Dump datasets into csv
         :return:
         """
+        print("Exporting datasets ...")
         gold = pd.DataFrame(list(self.gold.find()))
+        gold_path = base_path + "amt_gold.csv"
+        mturk_path = base_path + "amt_mturk.csv"
         mturk = pd.DataFrame(list(self.mturk.find()))
-        gold.to_csv(base_path + "amt_gold.csv")
-        mturk.to_csv(base_path + "amt_mturk.csv")
+        print("Gold : {} records to {}".format(len(gold), gold_path))
+        print("Mturk : {} records to {}".format(len(mturk), mturk_path))
+        gold.to_csv(gold_path)
+        mturk.to_csv(mturk_path)
 
     def close_connections(self):
         #print("Closing connection")
@@ -152,23 +162,23 @@ class DB:
 
 
 def import_job():
-    data = DB(port=8092)
+    data = DB(port=PORT)
     data.import_data()
     data.close_connections()
 
 def export_job():
-    data = DB(port=8092)
+    data = DB(port=PORT)
     data.export()
     data.close_connections()
 
 def backup_job():
-    data = DB(port=8092)
-    data.export(base_path='/home/ml/ksinha4/datasets/clutrr_mturk/')
-    data.export(base_path='/mnt/hdd/datasets/clutrr_mturk/')
+    data = DB(port=PORT)
+    data.export(base_path=CLUTRR_BASE)
+    data.export(base_path='/home/koustuv/')
     data.close_connections()
 
 def info_job():
-    data = DB(port=8092)
+    data = DB(port=PORT)
     print("Generating statistics at {}".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M")))
     gold_c = data.gold.find({}).count()
     pending_c = data.gold.find({'used':0}).count()
@@ -186,10 +196,12 @@ def info_job():
 
 
 if __name__ == '__main__':
+    import_job()
+    export_job()
+    info_job()
     print("Scheduling jobs...")
-    schedule.every(1).minutes.do(import_job)
     schedule.every(10).minutes.do(export_job)
-    schedule.every(1).minutes.do(info_job)
+    schedule.every(10).minutes.do(info_job)
     # redundant backup
     schedule.every().day.at("23:00").do(backup_job)
 
