@@ -10,11 +10,12 @@ import glob
 import schedule
 import time
 import datetime
+import nltk
 import pdb
 
 KOUSTUV_ID = "A1W0QQF93UM08"
 PORT = 27017
-CLUTRR_BASE = '/home/koustuv/clutrr-2.0/'
+CLUTRR_BASE = '/Users/koustuvs/mlp/clutrr-2.0/'
 
 class DB:
     def __init__(self, host='localhost', port=PORT, collection='amt_study', test_prob=0.2):
@@ -49,6 +50,8 @@ class DB:
                 rec['used'] = 0
             else:
                 rec['reviewed'] = 0
+            sents = nltk.sent_tokenize(rec['story'])
+            rec['relation_length'] = len(sents)
         mdb = getattr(self, db)
         # prune the records which are already present in the database
         keep_idx = []
@@ -64,33 +67,43 @@ class DB:
         print("Inserted {} records in db {}".format(len(records), db))
 
     def get_gold(self):
-        record = self.gold.find_one(sort=[("used",1)])
-        # update counter
-        if record:
-            self.gold.update_one({'_id': record['_id']}, {'$inc': {'used': 1}}, upsert=False)
+        """
+        Find the gold record to annotate.
+        Rotation policy: first randomly choose a relation_length, then choose the least used
+        annotation
+        :return:
+        """
+        relations = self.gold.distinct("relation_length")
+        print("Found {} distinct relations".format(relations))
+        rand_relation = random.choice(relations)
+        print("Randomly choosing {}".format(rand_relation))
+        record = self.gold.find_one({'relation_length': rand_relation}, sort=[("used",1)])
         return record
 
-    def get_peer(self, worker_id='test'):
+    def get_peer(self, worker_id='test', relation_length=1):
         """
         Get an annotation which is not done by the current worker, and which isn't reviewed
         With some probability, choose our test records
         TODO: it would be nice if we can avoid the annotations done by the same worker here
         :param worker_id:
+        :param relation_length:
         :return: None if no suitable candidate found
         """
         using_test = False
         record = None
         if random.uniform(0,1) <= self.test_prob:
             using_test = True
-            record_cursor = self.mturk.find({'worker_id': self.test_worker}, sort=[("used",1)])
+            record_cursor = self.mturk.find({'worker_id': self.test_worker, 'relation_length': relation_length},
+                                            sort=[("used",1)])
         else:
-            record_cursor = self.mturk.find({'worker_id': {"$ne": worker_id}}, sort=[("used",1)])
+            record_cursor = self.mturk.find({'worker_id': {"$ne": worker_id}, 'relation_length': relation_length},
+                                            sort=[("used",1)])
         rec_found = False
         if record_cursor.count() > 0:
             rec_found = True
         if not using_test and not rec_found:
             # if no candidate peer is found, default to test
-            record_cursor = self.mturk.find({'worker_id': self.test_worker},
+            record_cursor = self.mturk.find({'worker_id': self.test_worker, 'relation_length': relation_length},
                     sort=[("used",1)])
         if record_cursor.count() > 0:
             record = list(record_cursor)[0]
@@ -129,6 +142,7 @@ class DB:
         record['gold_id'] = record['_id']
         del record['_id']
         self.mturk.insert_one(record)
+        self.gold.update_one({'_id': record['gold_id']}, {'$inc': {'used': 1}}, upsert=False)
 
     def import_data(self):
         path = CLUTRR_BASE + 'mturk_data/*'
@@ -156,6 +170,21 @@ class DB:
         gold.to_csv(gold_path)
         mturk.to_csv(mturk_path)
 
+    def update_relation_length(self):
+        print("Updating...")
+        gold = self.gold.find({})
+        up = 0
+        for rec in gold:
+            rec['relation_length'] = len(nltk.sent_tokenize(rec['story']))
+            self.gold.update_one({'_id': rec['_id']}, {"$set": rec}, upsert=False)
+            up += 1
+        mturk = self.mturk.find({})
+        for rec in mturk:
+            rec['relation_length'] = len(nltk.sent_tokenize(rec['story']))
+            self.mturk.update_one({'_id': rec['_id']}, {"$set": rec}, upsert=False)
+            up += 1
+        print("Updated {} records".format(up))
+
     def close_connections(self):
         #print("Closing connection")
         self.client.close()
@@ -174,7 +203,7 @@ def export_job():
 def backup_job():
     data = DB(port=PORT)
     data.export(base_path=CLUTRR_BASE)
-    data.export(base_path='/home/koustuv/')
+    data.export(base_path='/Users/koustuv/')
     data.close_connections()
 
 def info_job():
