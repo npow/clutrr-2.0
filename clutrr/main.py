@@ -41,9 +41,8 @@ class Clutrr:
         """
         Default dispatcher method
         """
-        total_rows = args.num_rows
-        train_rows = int(args.num_rows * (1-args.test_split))
-        test_rows = total_rows - train_rows
+        train_rows = args.train_rows
+        test_rows = args.test_rows
         train_choice = args.train_task
         test_choices = args.test_tasks.split(',')
         # training
@@ -114,6 +113,9 @@ class Clutrr:
 
         print("Created dataset in {}".format(directory))
         self.analyze_data(directory)
+        if args.mturk:
+            self.keep_unique(directory)
+
 
     def analyze_data(self, directory):
         all_files = glob.glob(os.path.join(directory,'*.csv'))
@@ -126,6 +128,26 @@ class Clutrr:
             if '_train' in fl:
                 print(df['f_comb'].value_counts().to_string())
         print("Analysis complete")
+
+    def keep_unique(self, directory, num=1):
+        """
+        Keep num unique rows for each pattern. Handy for Mturk collection.
+        :param num:
+        :return:
+        """
+        all_files = glob.glob(os.path.join(directory, '*.csv'))
+        for fl in all_files:
+            df = pd.read_csv(fl)
+            uniq_patterns = df['f_comb'].unique()
+            udf = []
+            for up in uniq_patterns:
+                # randomly select one row for this unique pattern
+                rd = df[df['f_comb'] == up].sample(num)
+                udf.append(rd)
+            udf = pd.concat(udf)
+            udf.to_csv(fl)
+
+
 
     def _init_vars(self, args):
         args.noise_support = False

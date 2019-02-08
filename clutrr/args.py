@@ -3,7 +3,6 @@ import argparse
 def get_args():
     parser = argparse.ArgumentParser()
     # graph parameters
-    parser.add_argument("--num_rows", default=100, type=int, help='number of rows')
     parser.add_argument("--max_levels", default=2, type=int, help="max number of levels")
     parser.add_argument("--min_child", default=4, type=int, help="max number of children per node")
     parser.add_argument("--max_child", default=4, type=int, help="max number of children per node")
@@ -29,6 +28,8 @@ def get_args():
     # task
     parser.add_argument("--train_task", default="1.3", type=str, help='Define which task to create dataset for, including the relationship length.')
     parser.add_argument("--test_tasks", default="1.3", type=str, help='Define which tasks including the relation lengths to test for, comma separaated')
+    parser.add_argument("--train_rows", default=100, type=int, help='number of train rows')
+    parser.add_argument("--test_rows", default=100, type=int, help='number of test rows')
     parser.add_argument("--memory", default=1, type=float, help='Percentage of tasks which are just memory retrieval')
     parser.add_argument("--data_type", default="train", type=str, help='train/test')
     # question type
@@ -42,6 +43,7 @@ def get_args():
     parser.add_argument("--equal", default=False, action='store_true',
                         help="Make sure each pattern is equal. Warning: Time complexity of generation increases if this flag is set.")
     parser.add_argument("--analyze", default=False, action='store_true', help="Analyze generated files")
+    parser.add_argument("--mturk", default=False, action='store_true', help='prepare data for mturk')
 
 
     return parser.parse_args()

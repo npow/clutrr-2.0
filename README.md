@@ -68,7 +68,6 @@ usage: main.py [-h] [--num_rows NUM_ROWS] [--max_levels MAX_LEVELS]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --num_rows NUM_ROWS   number of rows
   --max_levels MAX_LEVELS
                         max number of levels
   --min_child MIN_CHILD
@@ -98,6 +97,8 @@ optional arguments:
   --test_tasks TEST_TASKS
                         Define which tasks including the relation lengths to
                         test for, comma separaated
+  --train_rows TRAIN_ROWS   number of train rows
+  --test_rows TEST_ROWS   number of test rows
   --memory MEMORY       Percentage of tasks which are just memory retrieval
   --data_type DATA_TYPE
                         train/test
