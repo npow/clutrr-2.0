@@ -1,7 +1,7 @@
-## Wrapper to communicate with backend database
-## The database (Mongo) is used to maintain a set of collections
-#### - data we need to annotate : gold
-#### - dump for annotated data : mturk  - this should also contain our manual tests
+# Wrapper to communicate with backend database
+# The database (Mongo) is used to maintain a set of collections
+#   - data we need to annotate : gold
+#   - dump for annotated data : mturk  - this should also contain our manual tests
 
 from pymongo import MongoClient
 import pandas as pd
@@ -11,19 +11,25 @@ import schedule
 import time
 import datetime
 import nltk
-import pdb
+import subprocess
 
 KOUSTUV_ID = "A1W0QQF93UM08"
 PORT = 27017
-CLUTRR_BASE = '/Users/koustuvs/mlp/clutrr-2.0/'
+COLLECTION = 'amt_study'
+GOLD_TABLE = 'gold'
+MTURK_TABLE = 'mturk'
+USER_BASE = '/Users/koustuvs/'
+CLUTRR_BASE = USER_BASE + 'mlp/clutrr-2.0/'
+SQLITE_BASE = CLUTRR_BASE + 'mturk/parlai/mturk/core/run_data/'
+DRIVE_PATH = USER_BASE + 'Google Drive/clutrr/'
 
 class DB:
-    def __init__(self, host='localhost', port=PORT, collection='amt_study', test_prob=0.2):
+    def __init__(self, host='localhost', port=PORT, collection=COLLECTION, test_prob=0.2):
         # initiate the db connection
         self.client = MongoClient(host, port)
         #print("Connected to backend MongoDB data at {}:{}".format(host, port))
-        self.gold = self.client[collection]['gold']
-        self.mturk = self.client[collection]['mturk']
+        self.gold = self.client[collection][GOLD_TABLE]
+        self.mturk = self.client[collection][MTURK_TABLE]
         self.test_prob = test_prob
         self.test_worker = KOUSTUV_ID
 
@@ -84,7 +90,6 @@ class DB:
         """
         Get an annotation which is not done by the current worker, and which isn't reviewed
         With some probability, choose our test records
-        TODO: it would be nice if we can avoid the annotations done by the same worker here
         :param worker_id:
         :param relation_length:
         :return: None if no suitable candidate found
@@ -95,9 +100,11 @@ class DB:
             using_test = True
             record_cursor = self.mturk.find({'worker_id': self.test_worker, 'relation_length': relation_length},
                                             sort=[("used",1)])
+            print("Choosing a test record to annotate")
         else:
-            record_cursor = self.mturk.find({'worker_id': {"$ne": worker_id}, 'relation_length': relation_length},
+            record_cursor = self.mturk.find({'worker_id': {"$nin": [worker_id, self.test_worker]}, 'relation_length': relation_length},
                                             sort=[("used",1)])
+            print("Choosing a review record to annotate")
         rec_found = False
         if record_cursor.count() > 0:
             rec_found = True
@@ -170,6 +177,29 @@ class DB:
         gold.to_csv(gold_path)
         mturk.to_csv(mturk_path)
 
+    def export_mongodb(self, path=CLUTRR_BASE):
+        """
+        Export the entire mongodb dump to location, preferably a google drive
+        :param path:
+        :return:
+        """
+        print("Exporting local mongodb to {}".format(path))
+        command = "mongodump --db {} --out {} --gzip".format(COLLECTION, path)
+        res = subprocess.run(command.split(" "), stdout=subprocess.PIPE)
+        print(res)
+
+    def export_sqlite(self, path=CLUTRR_BASE, sqlite_path=SQLITE_BASE):
+        """
+        Zip and export the sqlite database in sqlite path
+        :param path:
+        :return:
+        """
+        print("Export local sqlite db to {}".format(path))
+        command = "zip -q -r {}/run_data.zip {}".format(path, sqlite_path)
+        res = subprocess.run(command.split(" "), stdout=subprocess.PIPE)
+        print(res)
+
+
     def update_relation_length(self):
         print("Updating...")
         gold = self.gold.find({})
@@ -198,13 +228,16 @@ def import_job():
 def export_job():
     data = DB(port=PORT)
     data.export()
+    data.export(base_path=USER_BASE)
     data.close_connections()
 
 def backup_job():
     data = DB(port=PORT)
     data.export(base_path=CLUTRR_BASE)
-    data.export(base_path='/Users/koustuv/')
+    data.export(base_path=USER_BASE)
     data.close_connections()
+    data.export_mongodb()
+    data.export_sqlite()
 
 def info_job():
     data = DB(port=PORT)
@@ -228,6 +261,7 @@ if __name__ == '__main__':
     import_job()
     export_job()
     info_job()
+    backup_job()
     print("Scheduling jobs...")
     schedule.every(10).minutes.do(export_job)
     schedule.every(10).minutes.do(info_job)
