@@ -124,3 +124,8 @@ dmypy.json
 !data/.gikeep
 data/
 mturk_data/
+
+.DS_Store
+amt_study/
+*.zip
+
