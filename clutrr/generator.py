@@ -14,6 +14,7 @@ import pandas as pd
 
 def generate_rows(args, store, task_name):
     # generate
+    print(args.relation_length)
     pb = tqdm(total=args.num_rows)
     num_stories = args.num_rows
     stories_left = num_stories
@@ -47,10 +48,13 @@ def generate_rows(args, store, task_name):
             if puzzle['f_comb'] not in f_comb_count:
                 f_comb_count[puzzle['f_comb']] = 0
             f_comb_count[puzzle['f_comb']] +=1
+            stories_left -= 1
+            if stories_left < 0:
+                break
             rows.append([pid, story, puzzle['query_text'], text_question, puzzle['target'], puzzle['text_target'],
                          clean_story, puzzle['proof'], puzzle['f_comb'], task_name])
             pb.update(1)
-        stories_left = stories_left - len(rb.puzzles)
+        print("Number of unique patterns : {}".format(len(f_comb_count)))
     pb.close()
     print("{} ancestries created".format(anc_num))
     return columns, rows

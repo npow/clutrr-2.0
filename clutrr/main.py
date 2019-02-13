@@ -16,7 +16,7 @@ class Clutrr:
         args = self._init_vars(args)
         self.run_task(args)
 
-    def generate(self, choice, args, num_rows=0, data_type='train'):
+    def generate(self, choice, args, num_rows=0, data_type='train', multi=False):
         """
         Choose the task and the relation length
         Return the used args for storing
@@ -24,18 +24,33 @@ class Clutrr:
         :param args:
         :param num_rows:
         :param data_type:
+        :param multi:
         :return:
         """
         args = copy.deepcopy(args)
         args.num_rows = num_rows
         args.data_type = data_type
-        task, relation_length = choice.split('.')
-        task_name = 'task_{}'.format(task)
-        task_method = getattr(self, task_name, lambda: "Task {} not implemented".format(choice))
-        args = task_method(args)
-        args.relation_length = int(relation_length)
-        store = Store(args)
-        return (generate_rows(args, store, task_name), args)
+        if not multi:
+            task, relation_length = choice.split('.')
+            task_name = 'task_{}'.format(task)
+            task_method = getattr(self, task_name, lambda: "Task {} not implemented".format(choice))
+            args = task_method(args)
+            args.relation_length = int(relation_length)
+            store = Store(args)
+            return (generate_rows(args, store, task_name  + '.{}'.format(relation_length)), args)
+        else:
+            rows = []
+            columns = []
+            for ch in choice:
+                task, relation_length = ch.split('.')
+                task_name = 'task_{}'.format(task)
+                task_method = getattr(self, task_name, lambda: "Task {} not implemented".format(choice))
+                args = task_method(args)
+                args.relation_length = int(relation_length)
+                store = Store(args)
+                columns,r = generate_rows(args, store, task_name + '.{}'.format(relation_length))
+                rows.extend(r)
+            return ((columns, rows), args)
 
     def run_task(self, args):
         """
@@ -43,10 +58,10 @@ class Clutrr:
         """
         train_rows = args.train_rows
         test_rows = args.test_rows
-        train_choice = args.train_task
+        train_choices = args.train_tasks.split(',')
         test_choices = args.test_tasks.split(',')
         # training
-        train_data = self.generate(train_choice, args, num_rows=train_rows, data_type='train')
+        train_data = self.generate(train_choices, args, num_rows=train_rows, data_type='train', multi=True)
         test_datas = []
         for t_choice in test_choices:
             test_datas.append(self.generate(t_choice, args, num_rows=test_rows, data_type='test'))
@@ -77,10 +92,12 @@ class Clutrr:
         :return:
         """
         train_rows, train_args = train_data
+        print('train_columns', len(train_rows[0]))
+        print('train_rows', len(train_rows[1]))
         train_df = pd.DataFrame(columns=train_rows[0], data=train_rows[1])
         all_config = {}
-        train_fl_name = self.assign_name(train_args, args.train_task)
-        all_config['train_task'] = {args.train_task: train_fl_name}
+        train_fl_name = self.assign_name(train_args, args.train_tasks)
+        all_config['train_task'] = {args.train_tasks: train_fl_name}
         all_config['test_tasks'] = {}
         test_fl_names = []
         test_dfs = []
@@ -235,4 +252,4 @@ class Clutrr:
 if __name__ == '__main__':
     args = get_args()
     Clutrr(args)
-    generate_webpage('/home/mlp/ksinha4/clutrr/data')
+    generate_webpage('/home/ml/ksinha4/mlp/clutrr/data')

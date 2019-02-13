@@ -1,9 +1,12 @@
+## Note: With these current args (max level 3, min_child = max_child = 4), its only possible to generate
+## upto 8 relations in my cpu. The code is not optimized yet.
+
 import argparse
 
 def get_args():
     parser = argparse.ArgumentParser()
     # graph parameters
-    parser.add_argument("--max_levels", default=2, type=int, help="max number of levels")
+    parser.add_argument("--max_levels", default=3, type=int, help="max number of levels")
     parser.add_argument("--min_child", default=4, type=int, help="max number of children per node")
     parser.add_argument("--max_child", default=4, type=int, help="max number of children per node")
     parser.add_argument("--p_marry", default=1.0, type=float, help="Probability of marriage among nodes")
@@ -26,7 +29,7 @@ def get_args():
     parser.add_argument("--relations_store", default="relations_store.yaml", type=str, help='Relations store')
     parser.add_argument("--attribute_store", default="attribute_store.json", type=str, help='Attributes store')
     # task
-    parser.add_argument("--train_task", default="1.3", type=str, help='Define which task to create dataset for, including the relationship length.')
+    parser.add_argument("--train_tasks", default="1.3", type=str, help='Define which task to create dataset for, including the relationship length, comma separated')
     parser.add_argument("--test_tasks", default="1.3", type=str, help='Define which tasks including the relation lengths to test for, comma separaated')
     parser.add_argument("--train_rows", default=100, type=int, help='number of train rows')
     parser.add_argument("--test_rows", default=100, type=int, help='number of test rows')

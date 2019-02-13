@@ -20,7 +20,7 @@ run a task, refer the following table and run:
 
 Where, `train_task` is in the form of `<task_id>.<relation_length>`, and `test_tasks` is a comma separated list of the same form. For eg:
 
-`python main.py --train_task 1.3 --test_tasks 1.3,1.4
+`python main.py --train_tasks 1.3 --test_tasks 1.3,1.4
 
 You can provide general arguments as well, which are defined in the next section.
 
@@ -91,7 +91,7 @@ optional arguments:
                         Relations store
   --attribute_store ATTRIBUTE_STORE
                         Attributes store
-  --train_task TRAIN_TASK
+  --train_tasks TRAIN_TASK
                         Define which task to create dataset for, including the
                         relationship length.
   --test_tasks TEST_TASKS
