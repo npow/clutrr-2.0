@@ -23,11 +23,19 @@ inv-child:
       e_2 is the father of e_1,
       e_2 is e_1's father
     ]
+    not : [
+      e_2 is not the mother of e_1 but one of the parent,
+      e_2 is e_1's parent but not the mother
+    ]
   female:
     rel: mother
     p: [
       e_2 is the mother of e_1,
       e_2 is e_1's mother
+    ]
+    not: [
+      e_2 is not the father of e_1 but one of the parent,
+      e_2 is e_1's parent but not the father
     ]
 
 SO:
@@ -37,6 +45,10 @@ SO:
       e_2 is the husband of e_1,
       The husband of e_1 is e_2,
       e_2 is e_1's husband
+    ]
+    not: [
+      e_2 is the significant other of e_1 but not the wife,
+
     ]
   female:
     rel: wife
@@ -142,10 +154,10 @@ un:
       e_2 is e_1's nephew
     ]
   female:
-    rel: neice
+    rel: niece
     p: [
-      e_2 is the neice of e_1,
-      e_2 is e_1's neice
+      e_2 is the niece of e_1,
+      e_2 is e_1's niece
     ]
 
 inv-un :

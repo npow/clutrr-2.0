@@ -46,9 +46,11 @@ class RelationBuilder:
         self.num_rel = args.relation_length
         self.puzzles = {}
         self.puzzle_ct = 0
+        self.expansions = {} # (a,b) : [list]
         # save the edges which are used already
         self.done_edges = set()
         self.apply_almost_complete()
+        self.precompute_expansions(list(self.anc.family.keys()))
 
     def _invert_rule(self, rule):
         """
@@ -177,10 +179,13 @@ class RelationBuilder:
         For each edge apply ``almost_complete``
         :return:
         """
+        print("Almost completing the family graph with {} nodes...".format(len(self.anc.family_data)))
         for i in range(len(self.anc.family_data)):
             for j in range(len(self.anc.family_data)):
                 if i != j:
                     self.almost_complete((i, j))
+        print("Initial family tree created with {} edges".format(
+            len(set([k for k, v in self.anc.family.items()]))))
 
     def build(self):
         """
@@ -190,6 +195,7 @@ class RelationBuilder:
         :return:
         """
         available_edges = set([k for k, v in self.anc.family.items()]) - self.done_edges
+        #print("Available edges to derive backwards - {}".format(len(available_edges)))
         for edge in available_edges:
             story, proof_trace = self.derive([edge], k=self.num_rel-1)
             if len(story) == self.num_rel:
@@ -201,6 +207,24 @@ class RelationBuilder:
                 }
                 self.puzzles[id]['f_comb'] = '-'.join([self._get_edge_rel(x)['rel'] for x in story])
                 self.puzzle_ct += 1
+        if len(self.puzzles) == 0:
+            print("No puzzles could be generated with this current set of arguments. Consider increasing the family tree.")
+            raise NotImplementedError()
+        #print("Generated {}".format(len(self.puzzles)))
+
+    def reset_puzzle(self):
+        """Reset puzzle to none"""
+        self.puzzles = {}
+        self.puzzles_ct = 0
+
+    def unique_patterns(self):
+        """Get unique patterns in this puzzle"""
+        f_comb_count = {}
+        for pid, puzzle in self.puzzles.items():
+            if puzzle['f_comb'] not in f_comb_count:
+                f_comb_count[puzzle['f_comb']] = 0
+            f_comb_count[puzzle['f_comb']] += 1
+        return set(f_comb_count.keys())
 
 
     def _value_counts(self):
@@ -259,7 +283,7 @@ class RelationBuilder:
                 story = puzzle['story']
                 extra_story = []
                 for se in story:
-                    e = self.expand(se)
+                    e = self.expand_new(se)
                     if e:
                         if puzzle['edge'] not in e and len(set(e).intersection(set(story))) == 0 and len(set(e).intersection(set(extra_story))) == 0:
                             extra_story.extend(e)
@@ -272,7 +296,7 @@ class RelationBuilder:
                 extra_story = []
                 for i in range(num_edges):
                     tmp = sampled_edge
-                    pair = self.expand(sampled_edge)
+                    pair = self.expand_new(sampled_edge)
                     if pair:
                         for e in pair:
                             if e != puzzle['edge']:
@@ -302,6 +326,40 @@ class RelationBuilder:
                     noise.extend(random.sample(n_att, num_attr))
                 self.puzzles[puzzle_id]['text_fact_4'] = noise
 
+
+    def precompute_expansions(self, edge_list, tp='family'):
+        """
+        Given a list of edges, precompute the one level expansions on all of them
+        Given (x,y) -> get (x,z), (z,y) s.t. it follows our set of rules
+        Store the expansions as a list : (x,y) : [[(x,a),(a,y)], [(x,b),(b,y)] ... ]
+        :param edge_list:
+        :return:
+        """
+        for edge in edge_list:
+            relation = self.anc.family[edge][tp]
+            if relation not in self.comp_rules_inv[tp]:
+                continue
+            rules = list(self.comp_rules_inv[tp][relation])
+            for rule in rules:
+                for node in self.anc.family_data.keys():
+                    e1 = (edge[0], node)
+                    e2 = (node, edge[1])
+                    if e1 in self.anc.family and self.anc.family[e1][tp] == rule[0] \
+                            and e2 in self.anc.family and self.anc.family[e2][tp] == rule[1]:
+                        new_edge_pair = [e1, e2]
+                        if edge not in self.expansions:
+                            self.expansions[edge] = []
+                        self.expansions[edge].append(new_edge_pair)
+            self.expansions[edge] = it.cycle(self.expansions[edge])
+
+    def expand_new(self, edge, tp='family'):
+        relation = self.anc.family[edge][tp]
+        if relation not in self.comp_rules_inv[tp]:
+            return None
+        if edge in self.expansions:
+            return self.expansions[edge].__next__()
+        else:
+            return None
 
     def expand(self, edge, tp='family'):
         """
@@ -340,9 +398,11 @@ class RelationBuilder:
         while k>0:
             if len(set(edge_list)) - len(seen) == 0:
                 break
+            if len(list(set(edge_list) - seen)) == 0:
+                break
             e = random.choice(list(set(edge_list) - seen))
             seen.add(e)
-            ex_e = self.expand(e)
+            ex_e = self.expand_new(e)
             if ex_e and (ex_e[0] not in seen and ex_e[1] not in seen and ex_e[0][::-1] not in seen and ex_e[1][::-1] not in seen):
                 pos = edge_list.index(e)
                 edge_list.insert(pos, ex_e[-1])

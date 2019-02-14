@@ -47,6 +47,7 @@ def get_args():
                         help="Make sure each pattern is equal. Warning: Time complexity of generation increases if this flag is set.")
     parser.add_argument("--analyze", default=False, action='store_true', help="Analyze generated files")
     parser.add_argument("--mturk", default=False, action='store_true', help='prepare data for mturk')
+    parser.add_argument("--holdout", default=False, action='store_true', help='if true, then hold out unique patterns in the test set')
 
 
     return parser.parse_args()

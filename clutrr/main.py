@@ -33,6 +33,7 @@ class Clutrr:
         if not multi:
             task, relation_length = choice.split('.')
             task_name = 'task_{}'.format(task)
+            print("mode : {}, task : {}, rel_length : {}".format(data_type, task_name, relation_length))
             task_method = getattr(self, task_name, lambda: "Task {} not implemented".format(choice))
             args = task_method(args)
             args.relation_length = int(relation_length)
@@ -44,6 +45,7 @@ class Clutrr:
             for ch in choice:
                 task, relation_length = ch.split('.')
                 task_name = 'task_{}'.format(task)
+                print("mode : {}, task : {}, rel_length : {}".format(data_type, task_name, relation_length))
                 task_method = getattr(self, task_name, lambda: "Task {} not implemented".format(choice))
                 args = task_method(args)
                 args.relation_length = int(relation_length)
@@ -111,6 +113,11 @@ class Clutrr:
             all_config[tname] = vars(test_args)
             test_dfs.append(pd.DataFrame(columns=test_rows[0], data=test_rows[1]))
             all_config['test_tasks'][test_tasks[i]] = tname
+
+        # TODO:
+
+
+
         base_path = os.path.abspath(os.pardir)
         # derive folder name as a random selection of characters
         directory = ''

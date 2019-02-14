@@ -22,10 +22,10 @@ def generate_rows(args, store, task_name):
     f_comb_count = {}
     rows = []
     anc_num = 0
+    anc_num += 1
+    anc = Ancestry(args, store)
+    rb = RelationBuilder(args, store, anc)
     while stories_left > 0:
-        anc_num += 1
-        anc = Ancestry(args, store)
-        rb = RelationBuilder(args, store, anc)
         rb.build()
         rb.add_facts()
         # keeping a count of generated patterns to make sure we have homogenous distribution
@@ -54,9 +54,11 @@ def generate_rows(args, store, task_name):
             rows.append([pid, story, puzzle['query_text'], text_question, puzzle['target'], puzzle['text_target'],
                          clean_story, puzzle['proof'], puzzle['f_comb'], task_name])
             pb.update(1)
-        print("Number of unique patterns : {}".format(len(f_comb_count)))
+        rb.reset_puzzle()
+        rb.anc.next_flip()
     pb.close()
     print("{} ancestries created".format(anc_num))
+    print("Number of unique patterns : {}".format(len(f_comb_count)))
     return columns, rows
 
 
@@ -64,7 +66,19 @@ def test_run(args):
     store = Store(args)
     anc = Ancestry(args, store)
     rb = RelationBuilder(args, store, anc)
-    rb.build()
+    rb.num_rel = 3
+    all_patterns = set()
+    while True:
+        for j in range(len(anc.family_data.keys())):
+            rb.build()
+            up = rb.unique_patterns()
+            all_patterns.update(up)
+            print(len(all_patterns))
+            rb.reset_puzzle()
+        if not rb.anc.next_flip():
+            break
+    print("Number of unique puzzles : {}".format(len(all_patterns)))
+
     rb.add_facts()
     rb.generate_puzzles()
     print("Generated {} puzzles".format(len(rb.puzzles)))
@@ -84,8 +98,8 @@ def main(args):
 
 if __name__ == '__main__':
     args = get_args()
-    #test_run(args)
-    main(args)
+    test_run(args)
+    #main(args)
 
 
 
