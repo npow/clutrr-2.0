@@ -63,11 +63,13 @@ class Clutrr:
         train_choices = args.train_tasks.split(',')
         test_choices = args.test_tasks.split(',')
         # training
-        train_data = self.generate(train_choices, args, num_rows=train_rows, data_type='train', multi=True)
+        train_datas = []
+        for t_choice in train_choices:
+            train_datas.append(self.generate(t_choice, args, num_rows=train_rows, data_type='train'))
         test_datas = []
         for t_choice in test_choices:
             test_datas.append(self.generate(t_choice, args, num_rows=test_rows, data_type='test'))
-        self.store(train_data, test_datas, args)
+        self.store(train_datas, test_datas, args)
 
     def assign_name(self, args, task_name):
         """
@@ -93,10 +95,27 @@ class Clutrr:
         :param test_data list of list of rows
         :return:
         """
-        train_rows, train_args = train_data
-        print('train_columns', len(train_rows[0]))
-        print('train_rows', len(train_rows[1]))
-        train_df = pd.DataFrame(columns=train_rows[0], data=train_rows[1])
+        train_tasks = args.train_tasks.split(',')
+        train_df = []
+        holdout = []
+        train_args = None
+        for i, td in enumerate(train_data):
+            train_rows, train_args = td
+            tdf = pd.DataFrame(columns=train_rows[0], data=train_rows[1])
+            if args.holdout == train_tasks[i]:
+                print("holding out train {}".format(train_tasks[i]))
+                f_combs = tdf['f_comb'].value_counts().index.tolist()
+                split = int(len(f_combs) * (1 - args.test_split))
+                f_comb_train = f_combs[:split]
+                f_comb_test = f_combs[split:]
+                print("patterns in train", len(f_comb_train))
+                print("patterns in test", len(f_comb_test))
+                holdout.append(tdf[tdf['f_comb'].isin(f_comb_test)])
+                tdf = tdf[tdf['f_comb'].isin(f_comb_train)]
+            train_df.append(tdf)
+
+        train_df = pd.concat(train_df)
+        print("Training rows : {}".format(len(train_df)))
         all_config = {}
         train_fl_name = self.assign_name(train_args, args.train_tasks)
         all_config['train_task'] = {args.train_tasks: train_fl_name}
@@ -111,12 +130,12 @@ class Clutrr:
             tname = self.assign_name(test_args, test_tasks[i])
             test_fl_names.append(tname)
             all_config[tname] = vars(test_args)
-            test_dfs.append(pd.DataFrame(columns=test_rows[0], data=test_rows[1]))
+            if args.holdout == test_tasks[i]:
+                print("saving hold out test {}".format(test_tasks[i]))
+                test_dfs.append(holdout[0])
+            else:
+                test_dfs.append(pd.DataFrame(columns=test_rows[0], data=test_rows[1]))
             all_config['test_tasks'][test_tasks[i]] = tname
-
-        # TODO:
-
-
 
         base_path = os.path.abspath(os.pardir)
         # derive folder name as a random selection of characters

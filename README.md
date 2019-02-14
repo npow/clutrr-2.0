@@ -107,6 +107,7 @@ optional arguments:
   -v, --verbose         print the paths
   -t TEST_SPLIT, --test_split TEST_SPLIT
                         Testing split
+  --holdout             HOLDOUT name of the split to holdout
 
 ```
 
