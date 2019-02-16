@@ -282,17 +282,16 @@ def test_get_gold(k=100):
 
 
 if __name__ == '__main__':
-    test_get_gold()
-    #import_job()
-    #export_job()
-    #info_job()
-    #backup_job()
-    #print("Scheduling jobs...")
-    #schedule.every(10).minutes.do(export_job)
-    #schedule.every(10).minutes.do(info_job)
+    import_job()
+    export_job()
+    info_job()
+    backup_job()
+    print("Scheduling jobs...")
+    schedule.every(10).minutes.do(export_job)
+    schedule.every(10).minutes.do(info_job)
     # redundant backup
-    #schedule.every().day.at("23:00").do(backup_job)
+    schedule.every().day.at("23:00").do(backup_job)
 
-    #while True:
-    #    schedule.run_pending()
-    #    time.sleep(1)
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
