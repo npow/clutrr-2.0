@@ -12,6 +12,7 @@ import time
 import datetime
 import nltk
 import subprocess
+from numpy.random import choice
 
 KOUSTUV_ID = "A1W0QQF93UM08"
 PORT = 27017
@@ -79,12 +80,26 @@ class DB:
         annotation
         :return:
         """
-        relations = self.gold.distinct("relation_length")
+        # TODO: instead of randomly choosing stuff here, choose with higher probablity the relation which has more
+        # unused records
+        avg_used = list(self.gold.aggregate([{'$group': {'_id': '$relation_length', 'avg': {'$avg': '$used'}}}]))
+        # normalize
+        avg = [rel['avg'] for rel in avg_used]
+        relations = [rel['_id'] for rel in avg_used]
         print("Found {} distinct relations".format(relations))
-        rand_relation = random.choice(relations)
+        norm_avg = self._norm(avg)
+        # inverse the probability
+        delta = 0.01
+        norm_avg = [1/i+delta for i in norm_avg]
+        norm_avg = self._norm(norm_avg)
+        rand_relation = int(choice(relations, 1, p=norm_avg)[0])
         print("Randomly choosing {}".format(rand_relation))
         record = self.gold.find_one({'relation_length': rand_relation}, sort=[("used",1)])
         return record
+
+    def _norm(self, arr):
+        s = sum(arr)
+        return [r/s for r in arr]
 
     def get_peer(self, worker_id='test', relation_length=1):
         """
@@ -255,19 +270,29 @@ def info_job():
           "Number of annotations given : {} \n".format(mturk_c) +
           "Unique workers : {}".format(uniq_workers))
 
+def test_get_gold(k=100):
+    data = DB(port=PORT)
+    rel_chosen = {1:0,2:0,3:0}
+    for i in range(k):
+        record = data.get_gold()
+        rel_chosen[record['relation_length']] +=1
+    print(rel_chosen)
+    data.close_connections()
+
 
 
 if __name__ == '__main__':
-    import_job()
-    export_job()
-    info_job()
-    backup_job()
-    print("Scheduling jobs...")
-    schedule.every(10).minutes.do(export_job)
-    schedule.every(10).minutes.do(info_job)
+    test_get_gold()
+    #import_job()
+    #export_job()
+    #info_job()
+    #backup_job()
+    #print("Scheduling jobs...")
+    #schedule.every(10).minutes.do(export_job)
+    #schedule.every(10).minutes.do(info_job)
     # redundant backup
-    schedule.every().day.at("23:00").do(backup_job)
+    #schedule.every().day.at("23:00").do(backup_job)
 
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+    #while True:
+    #    schedule.run_pending()
+    #    time.sleep(1)
