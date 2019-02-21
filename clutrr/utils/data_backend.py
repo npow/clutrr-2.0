@@ -4,6 +4,7 @@
 #   - dump for annotated data : mturk  - this should also contain our manual tests
 
 from pymongo import MongoClient
+from bson.objectid import ObjectId
 import pandas as pd
 import random
 import glob
@@ -73,14 +74,19 @@ class DB:
             r = mdb.insert_many(records)
         print("Inserted {} records in db {}".format(len(records), db))
 
-    def get_gold(self):
+    def update_gender(self, data_path):
         """
-        Find the gold record to annotate.
-        Rotation policy: first randomly choose a relation_length, then choose the least used
-        annotation
+        Update the genders
+        :param data_path:
         :return:
         """
-        # TODO: instead of randomly choosing stuff here, choose with higher probablity the relation which has more
+        print("Reading {}".format(data_path))
+        data = self._read_csv(data_path)
+        for i, row in data.iterrows():
+            self.gold.update_one({'_id': ObjectId(row['_id'])}, {"$set": {'genders': row['genders']}}, upsert=False)
+        print('Updated {} records'.format(len(data)))
+
+    def choose_relation(self):
         # unused records
         avg_used = list(self.gold.aggregate([{'$group': {'_id': '$relation_length', 'avg': {'$avg': '$used'}}}]))
         # normalize
@@ -90,20 +96,44 @@ class DB:
         norm_avg = self._norm(avg)
         # inverse the probability
         delta = 0.01
-        norm_avg = [1/i+delta for i in norm_avg]
+        norm_avg = [1 / i + delta for i in norm_avg]
         norm_avg = self._norm(norm_avg)
         rand_relation = int(choice(relations, 1, p=norm_avg)[0])
+        return rand_relation
+
+    def get_gold(self, rand_relation=None):
+        """
+        Find the gold record to annotate.
+        Rotation policy: first randomly choose a relation_length, then choose the least used
+        annotation
+        :return:
+        """
+        if not rand_relation:
+            rand_relation = self.choose_relation()
         print("Randomly choosing {}".format(rand_relation))
         record = self.gold.find_one({'relation_length': rand_relation}, sort=[("used",1)])
+        return record
+
+    def get_gold_by_id(self, id=''):
+        """
+        Get a specific gold record by id
+        :param id:
+        :return:
+        """
+        try:
+            record = self.gold.find_one({'_id': ObjectId(id)})
+        except:
+            record = None
         return record
 
     def _norm(self, arr):
         s = sum(arr)
         return [r/s for r in arr]
 
-    def get_peer(self, worker_id='test', relation_length=1):
+    def get_peer(self, worker_id='test', relation_length=2):
         """
         Get an annotation which is not done by the current worker, and which isn't reviewed
+        Also, no need to choose relation of length 1
         With some probability, choose our test records
         :param worker_id:
         :param relation_length:
@@ -111,6 +141,8 @@ class DB:
         """
         using_test = False
         record = None
+        if relation_length == 1:
+            relation_length = random.choice([2,3])
         if random.uniform(0,1) <= self.test_prob:
             using_test = True
             record_cursor = self.mturk.find({'worker_id': self.test_worker, 'relation_length': relation_length},
@@ -270,6 +302,11 @@ def info_job():
           "Number of annotations given : {} \n".format(mturk_c) +
           "Unique workers : {}".format(uniq_workers))
 
+def update_genders():
+    data = DB(port=PORT)
+    data.update_gender('/Users/koustuvs/mlp/clutrr-2.0/amt_gold_gender.csv')
+    data.close_connections()
+
 def test_get_gold(k=100):
     data = DB(port=PORT)
     rel_chosen = {1:0,2:0,3:0}
@@ -282,6 +319,7 @@ def test_get_gold(k=100):
 
 
 if __name__ == '__main__':
+    '''
     import_job()
     export_job()
     info_job()
@@ -295,3 +333,5 @@ if __name__ == '__main__':
     while True:
         schedule.run_pending()
         time.sleep(1)
+    '''
+    update_genders()
