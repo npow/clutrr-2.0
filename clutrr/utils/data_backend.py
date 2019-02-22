@@ -83,7 +83,7 @@ class DB:
         print("Reading {}".format(data_path))
         data = self._read_csv(data_path)
         for i, row in data.iterrows():
-            self.gold.update_one({'_id': ObjectId(row['_id'])}, {"$set": {'genders': row['genders']}}, upsert=False)
+            self.mturk.update_many({'gold_id': ObjectId(row['_id'])}, {"$set": {'genders': row['genders']}}, upsert=False)
         print('Updated {} records'.format(len(data)))
 
     def choose_relation(self):
