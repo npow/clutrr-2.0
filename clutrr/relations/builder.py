@@ -209,8 +209,9 @@ class RelationBuilder:
                 self.puzzle_ct += 1
         if len(self.puzzles) == 0:
             print("No puzzles could be generated with this current set of arguments. Consider increasing the family tree.")
-            raise NotImplementedError()
+            return False
         #print("Generated {}".format(len(self.puzzles)))
+        return True
 
     def reset_puzzle(self):
         """Reset puzzle to none"""
@@ -277,6 +278,7 @@ class RelationBuilder:
                 - 4: Random attributes: school, place of birth, etc.
         :return:
         """
+        mark_ids_for_deletion = []
         for puzzle_id, puzzle in self.puzzles.items():
             if self.args.noise_support:
                 # Supporting facts
@@ -287,6 +289,8 @@ class RelationBuilder:
                     if e:
                         if puzzle['edge'] not in e and len(set(e).intersection(set(story))) == 0 and len(set(e).intersection(set(extra_story))) == 0:
                             extra_story.extend(e)
+                if len(extra_story) == 0:
+                    mark_ids_for_deletion.append(puzzle_id)
                 self.puzzles[puzzle_id]['fact_1'] = extra_story
             if self.args.noise_irrelevant:
                 # Irrelevant facts
@@ -304,6 +308,8 @@ class RelationBuilder:
                                 sampled_edge = e
                     if tmp == sampled_edge:
                         sampled_edge = random.choice(story)
+                if len(extra_story) == 0:
+                    mark_ids_for_deletion.append(puzzle_id)
                 self.puzzles[puzzle_id]['fact_2'] = extra_story
             if self.args.noise_disconnected:
                 # Disconnected facts
@@ -313,18 +319,29 @@ class RelationBuilder:
                 possible_edges = [(x,y) for x,y in it.combinations(list(nodes_not_in_story), 2) if (x,y) in self.anc.family]
                 num_edges = random.choice(range(1, len(possible_edges)))
                 possible_edges = random.sample(possible_edges, num_edges)
+                if len(possible_edges) == 0:
+                    mark_ids_for_deletion.append(puzzle_id)
                 self.puzzles[puzzle_id]['fact_3'] = possible_edges
+            # TODO: problem for generating clean graphs task 6
+            # solution here is to add an edge considering the entity "Facebook" an actor
             if self.args.noise_attributes:
                 num_attr = random.choice(range(1, len(self.store.attribute_store)+1))
                 story = puzzle['story']
                 ents = [se[0] for se in story]
                 ents.append(story[-1][-1])
-                noise = []
+                noise = {}
+                extra_ent_id = len(self.anc.family_data)
+                extra_ents = {}
                 for ent in ents:
                     node = self.anc.family_data[ent]
                     n_att = [v for k,v in node.attributes.items()]
-                    noise.extend(random.sample(n_att, num_attr))
+                    chosen_noises = random.sample(n_att, num_attr)
+                    noisy_edges = {(node.node_id, extra_ent_id + i):cn for i,cn in enumerate(chosen_noises)}
+                    noise.update(noisy_edges)
                 self.puzzles[puzzle_id]['text_fact_4'] = noise
+        # remove puzzles which cannot be added a fact / noise
+        for id in mark_ids_for_deletion:
+            del self.puzzles[id]
 
 
     def precompute_expansions(self, edge_list, tp='family'):
@@ -423,6 +440,12 @@ class RelationBuilder:
         edge_rel = self.relations_obj[relation][node_b_attr.gender]
         return edge_rel
 
+    def get_edge_relation(self, edge, rel_type='family'):
+        node_b_attr = self.anc.family_data[edge[1]]
+        relation = self.anc.family[edge][rel_type]
+        edge_rel = self.relations_obj[relation][node_b_attr.gender]
+        return edge_rel['rel']
+
     def _format_edge(self, edge):
         """
         Given an edge (x,y), format it into (name(x), name(y))
@@ -485,7 +508,7 @@ class RelationBuilder:
             extra_keys.append('fact_3')
         puzzle_ids = self.puzzles.keys()
         for pi in puzzle_ids:
-            self.puzzles[pi]['text_story'] = [self.stringify(e) for e in self.puzzles[pi]['story']]
+            self.puzzles[pi]['text_story'] = {e: self.stringify(e) for e in self.puzzles[pi]['story']}
             # either the target and query is reasoning from first and last, or memory retrieval from the given story
             if random.uniform(0,1) > self.args.memory:
                 self.puzzles[pi]['query'] = self.puzzles[pi]['edge']
@@ -496,8 +519,10 @@ class RelationBuilder:
             self.puzzles[pi]['query_text'] = self._format_edge(self.puzzles[pi]['query'])
             self.puzzles[pi]['text_target'] = self.stringify(self.puzzles[pi]['query'])
             # populate the noise
+            self.puzzles[pi]['all_noise'] = []
             for key in extra_keys:
-                self.puzzles[pi]['text_{}'.format(key)] = [self.stringify(e) for e in self.puzzles[pi][key]]
+                self.puzzles[pi]['text_{}'.format(key)] = {e: self.stringify(e) for e in self.puzzles[pi][key]}
+                self.puzzles[pi]['all_noise'].append(self.puzzles[pi][key])
             # replace edges with name and relations
             self.puzzles[pi]['f_edge'] = self._format_edge_rel(self.puzzles[pi]['edge'])
             self.puzzles[pi]['f_story'] = [self._format_edge_rel(x) for x in self.puzzles[pi]['story']]

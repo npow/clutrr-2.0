@@ -2,7 +2,6 @@
 from clutrr.args import get_args
 from clutrr.generator import generate_rows
 from clutrr.store.store import Store
-from clutrr.utils.web import generate_webpage
 import pandas as pd
 import glob
 import copy
@@ -10,6 +9,22 @@ import uuid
 import os
 import json
 import shutil
+import sys
+
+logPath = '../logs/'
+fileName = 'data'
+
+import logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("{0}/{1}.log".format(logPath, fileName)),
+        logging.StreamHandler()
+    ]
+)
+
+logger = logging.getLogger()
 
 class Clutrr:
     def __init__(self, args):
@@ -33,7 +48,7 @@ class Clutrr:
         if not multi:
             task, relation_length = choice.split('.')
             task_name = 'task_{}'.format(task)
-            print("mode : {}, task : {}, rel_length : {}".format(data_type, task_name, relation_length))
+            logger.info("mode : {}, task : {}, rel_length : {}".format(data_type, task_name, relation_length))
             task_method = getattr(self, task_name, lambda: "Task {} not implemented".format(choice))
             args = task_method(args)
             args.relation_length = int(relation_length)
@@ -45,7 +60,7 @@ class Clutrr:
             for ch in choice:
                 task, relation_length = ch.split('.')
                 task_name = 'task_{}'.format(task)
-                print("mode : {}, task : {}, rel_length : {}".format(data_type, task_name, relation_length))
+                logger.info("mode : {}, task : {}, rel_length : {}".format(data_type, task_name, relation_length))
                 task_method = getattr(self, task_name, lambda: "Task {} not implemented".format(choice))
                 args = task_method(args)
                 args.relation_length = int(relation_length)
@@ -103,19 +118,19 @@ class Clutrr:
             train_rows, train_args = td
             tdf = pd.DataFrame(columns=train_rows[0], data=train_rows[1])
             if args.holdout == train_tasks[i]:
-                print("holding out train {}".format(train_tasks[i]))
+                logger.info("holding out train {}".format(train_tasks[i]))
                 f_combs = tdf['f_comb'].value_counts().index.tolist()
                 split = int(len(f_combs) * (1 - args.test_split))
                 f_comb_train = f_combs[:split]
                 f_comb_test = f_combs[split:]
-                print("patterns in train", len(f_comb_train))
-                print("patterns in test", len(f_comb_test))
+                logger.info("patterns in train", len(f_comb_train))
+                logger.info("patterns in test", len(f_comb_test))
                 holdout.append(tdf[tdf['f_comb'].isin(f_comb_test)])
                 tdf = tdf[tdf['f_comb'].isin(f_comb_train)]
             train_df.append(tdf)
 
         train_df = pd.concat(train_df)
-        print("Training rows : {}".format(len(train_df)))
+        logger.info("Training rows : {}".format(len(train_df)))
         all_config = {}
         train_fl_name = self.assign_name(train_args, args.train_tasks)
         all_config['train_task'] = {args.train_tasks: train_fl_name}
@@ -131,7 +146,7 @@ class Clutrr:
             test_fl_names.append(tname)
             all_config[tname] = vars(test_args)
             if args.holdout == test_tasks[i]:
-                print("saving hold out test {}".format(test_tasks[i]))
+                logger.info("saving hold out test {}".format(test_tasks[i]))
                 test_dfs.append(holdout[0])
             else:
                 test_dfs.append(pd.DataFrame(columns=test_rows[0], data=test_rows[1]))
@@ -154,7 +169,7 @@ class Clutrr:
         json.dump(all_config, open(os.path.join(directory, 'config.json'),'w'))
         shutil.make_archive(directory, 'zip', directory)
 
-        print("Created dataset in {}".format(directory))
+        logger.info("Created dataset in {}".format(directory))
         self.analyze_data(directory)
         if args.mturk:
             self.keep_unique(directory)
@@ -163,14 +178,14 @@ class Clutrr:
     def analyze_data(self, directory):
         all_files = glob.glob(os.path.join(directory,'*.csv'))
         for fl in all_files:
-            print("Analyzing file {}".format(fl))
+            logger.info("Analyzing file {}".format(fl))
             df = pd.read_csv(fl)
             uniq_patterns = len(df['f_comb'].value_counts())
-            print("-> {} rows".format(len(df)))
-            print("-> {} unique patterns".format(uniq_patterns))
+            logger.info("-> {} rows".format(len(df)))
+            logger.info("-> {} unique patterns".format(uniq_patterns))
             if '_train' in fl:
-                print(df['f_comb'].value_counts().to_string())
-        print("Analysis complete")
+                logger.info(df['f_comb'].value_counts().to_string())
+        logger.info("Analysis complete")
 
     def keep_unique(self, directory, num=1):
         """
@@ -277,5 +292,8 @@ class Clutrr:
 
 if __name__ == '__main__':
     args = get_args()
+    logger.info("Data generation started for configurations : ")
+    logger.info('\ntogrep : {0}\n'.format(sys.argv[1:]))
     Clutrr(args)
-    generate_webpage('/home/ml/ksinha4/mlp/clutrr/data')
+    logger.info("\ntogrep : Data generation done {0}\n".format(sys.argv[1:]))
+    logger.info("-----------------------------------------------------")

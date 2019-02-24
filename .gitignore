@@ -123,6 +123,9 @@ dmypy.json
 # data
 !data/.gikeep
 data/
+**/*.json
+*.ipynb
+old_data/
 mturk_data/
 
 .DS_Store

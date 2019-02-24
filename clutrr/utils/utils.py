@@ -2,6 +2,7 @@ import itertools as it
 import numpy as np
 import csv
 import pandas as pd
+import random
 
 
 def pairwise(iterable):
@@ -55,3 +56,74 @@ def sanity_check(filename, rows):
     df = pd.read_csv(filename, skip_blank_lines=True, comment='#')
     print('Total rows : {}'.format(len(df)))
     assert len(rows) == len(df)
+
+
+class CDS:
+    def combinationSum(self, candidates, target):
+        res = []
+        candidates.sort()
+        self.dfs(candidates, target, 0, [], res)
+        return res
+
+    def dfs(self, nums, target, index, path, res):
+        if target < 0:
+            return  # backtracking
+        if target == 0:
+            res.append(path)
+            return
+        for i in range(index, len(nums)):
+            self.dfs(nums, target - nums[i], i, path + [nums[i]], res)
+
+
+class unique_element:
+    def __init__(self, value, occurrences):
+        self.value = value
+        self.occurrences = occurrences
+
+
+def perm_unique(elements):
+    eset = set(elements)
+    listunique = [unique_element(i, elements.count(i)) for i in eset]
+    u = len(elements)
+    return perm_unique_helper(listunique, [0] * u, u - 1)
+
+
+def perm_unique_helper(listunique, result_list, d):
+    if d < 0:
+        yield tuple(result_list)
+    else:
+        for i in listunique:
+            if i.occurrences > 0:
+                result_list[d] = i.value
+                i.occurrences -= 1
+                for g in perm_unique_helper(listunique, result_list, d - 1):
+                    yield g
+                i.occurrences += 1
+
+
+def comb_indexes(sn, max_seq_len=3):
+    """
+    Idea here is to generate all combinations maintaining the order
+    Eg, [a,b,c,d] => [[a],[b],[c],[d]], [[a,b],[c],[d]], [[a,b,c],[d]], etc ...
+    where the max sequence is max_seq_len
+    :param sn:
+    :param max_seq_len:
+    :return:
+    """
+    s_n = len(sn)
+    cd = CDS()
+    some_comb = cd.combinationSum(list(range(1,max_seq_len+1)),s_n)
+    all_comb = [list(perm_unique(x)) for x in some_comb]
+    all_comb = [y for r in all_comb for y in r]
+    pairs = []
+    for pt in all_comb:
+        rsa = []
+        stt = 0
+        for yt in pt:
+            rsa.append(sn[stt:stt+yt])
+            stt += yt
+        pairs.append(rsa)
+    return pairs
+
+def choose_random_subsequence(sn, max_seq_len=3):
+    return random.choice(comb_indexes(sn, max_seq_len))
