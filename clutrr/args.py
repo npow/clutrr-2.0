@@ -49,6 +49,7 @@ def get_args():
     parser.add_argument("--mturk", default=False, action='store_true', help='prepare data for mturk')
     parser.add_argument("--holdout", default='None', type=str, help='if true, then hold out unique patterns in the test set')
     parser.add_argument("--data_name", default='', type=str, help='Dataset name')
+    parser.add_argument("--use_mturk_template", default=False, action='store_true', help='use the templating data for mturk')
     parser.add_argument("--template_length", type=int, default=2, help="Max Length of the template to substitute")
     parser.add_argument("--template_file", type=str, default="amt_placeholders.json", help="location of placeholders")
 

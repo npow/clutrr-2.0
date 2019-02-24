@@ -118,30 +118,31 @@ def generate_rows(args, store, task_name):
             # story and noise = sequence
 
             templated_rows = []
-            for seq in all_edge_rows:
-                #print(seq)
-                # find all grouping combinations
-                group_combs = comb_indexes(seq, args.template_length)
-                #print(group_combs)
-                temp_rows = []
-                temp_user = TemplateUser(templates=templates, family=rb.anc.family_data)
-                for group in group_combs:
-                    try:
-                        fcombs = ['-'.join([rb.get_edge_relation(edge) for edge in edge_group]) for edge_group in group]
-                        fentities = [[ent for edge in edge_group for ent in edge] for edge_group in group]
-                        prows = [temp_user.replace_template(edge_group, fentities[group_id])
-                            for group_id, edge_group in enumerate(fcombs)]
-                        temp_rows.append((group, prows))
-                    except:
-                        pass
-                #print(len(temp_rows))
-                chosen_row = random.choice(temp_rows)
-                #print('chosen row', chosen_row)
-                templated_rows.append(chosen_row)
+            if args.use_mturk_template:
+                for seq in all_edge_rows:
+                    #print(seq)
+                    # find all grouping combinations
+                    group_combs = comb_indexes(seq, args.template_length)
+                    #print(group_combs)
+                    temp_rows = []
+                    temp_user = TemplateUser(templates=templates, family=rb.anc.family_data)
+                    for group in group_combs:
+                        try:
+                            fcombs = ['-'.join([rb.get_edge_relation(edge) for edge in edge_group]) for edge_group in group]
+                            fentities = [[ent for edge in edge_group for ent in edge] for edge_group in group]
+                            prows = [temp_user.replace_template(edge_group, fentities[group_id])
+                                for group_id, edge_group in enumerate(fcombs)]
+                            temp_rows.append((group, prows))
+                        except:
+                            pass
+                    #print(len(temp_rows))
+                    chosen_row = random.choice(temp_rows)
+                    #print('chosen row', chosen_row)
+                    templated_rows.append(chosen_row)
 
-            templated_rows = [row[-1] for row in templated_rows]
-            # flatten
-            templated_rows = [xt for t in templated_rows for xt in t]
+                templated_rows = [row[-1] for row in templated_rows]
+                # flatten
+                templated_rows = [xt for t in templated_rows for xt in t]
 
             ## The same thing above without the try catch block
             '''
