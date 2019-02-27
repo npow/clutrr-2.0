@@ -158,7 +158,7 @@ class Clutrr:
         directory = ''
         while True:
             folder_name = 'data_{}'.format(str(uuid.uuid4())[:8])
-            directory = os.path.join(base_path, 'data', folder_name)
+            directory = os.path.join(base_path, args.output_dir, folder_name)
             if not os.path.exists(directory):
                 os.makedirs(directory)
                 break

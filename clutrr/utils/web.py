@@ -5,6 +5,7 @@ import os
 import requests
 import datetime
 import pandas as pd
+import argparse
 
 
 template_header = '''
@@ -113,5 +114,8 @@ def generate_webpage(data_path):
         fp.write(web_page)
 
 if __name__ == '__main__':
-    generate_webpage('/home/ml/ksinha4/mlp/clutrr/data')
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output_dir", type=str, default="/home/ml/ksinha4/clutrr/data", help="output_dir")
+    args = parser.parse_args()
+    generate_webpage(args.output_dir)
 

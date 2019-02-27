@@ -52,6 +52,7 @@ def get_args():
     parser.add_argument("--use_mturk_template", default=False, action='store_true', help='use the templating data for mturk')
     parser.add_argument("--template_length", type=int, default=2, help="Max Length of the template to substitute")
     parser.add_argument("--template_file", type=str, default="amt_placeholders.json", help="location of placeholders")
+    parser.add_argument("--output_dir", type=str, default="data", help="output_dir")
 
 
     return parser.parse_args()

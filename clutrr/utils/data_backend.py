@@ -20,7 +20,7 @@ PORT = 27017
 COLLECTION = 'amt_study'
 GOLD_TABLE = 'gold'
 MTURK_TABLE = 'mturk'
-USER_BASE = '/Users/koustuvs/'
+USER_BASE = '/private/home/koustuvs/'
 CLUTRR_BASE = USER_BASE + 'mlp/clutrr-2.0/'
 SQLITE_BASE = CLUTRR_BASE + 'mturk/parlai/mturk/core/run_data/'
 DRIVE_PATH = USER_BASE + 'Google Drive/clutrr/'
@@ -92,6 +92,10 @@ class DB:
         # normalize
         avg = [rel['avg'] for rel in avg_used]
         relations = [rel['_id'] for rel in avg_used]
+        # dont server relation 3 for a moment
+        rel_idx = relations.index(3)
+        del relations[rel_idx]
+        del avg[rel_idx]
         print("Found {} distinct relations".format(relations))
         norm_avg = self._norm(avg)
         # inverse the probability
@@ -99,6 +103,7 @@ class DB:
         norm_avg = [1 / i + delta for i in norm_avg]
         norm_avg = self._norm(norm_avg)
         rand_relation = int(choice(relations, 1, p=norm_avg)[0])
+        print("Choosing relation {}".format(rand_relation))
         return rand_relation
 
     def get_gold(self, rand_relation=None):
@@ -290,21 +295,36 @@ def info_job():
     data = DB(port=PORT)
     print("Generating statistics at {}".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M")))
     gold_c = data.gold.find({}).count()
-    pending_c = data.gold.find({'used':0}).count()
+    pending_c = data.gold.count_documents({'used':0})
     avg_used = list(data.gold.aggregate([{'$group': {'_id':None,'avg' : {'$avg' : '$used'}}}]))
     if len(avg_used) > 0:
         avg_used = avg_used[0]['avg']
-    mturk_c = data.mturk.find({}).count()
+    mturk_c = data.mturk.count_documents({})
     uniq_workers = len(data.mturk.find({}).distinct("worker_id"))
+    mturk_c_1 = data.mturk.count_documents({'relation_length':1})
+    gold_agg = list(data.gold.aggregate([{'$group': {'_id': {'relation_length': '$relation_length', 'f_comb': '$f_comb'},
+                                                       'avg' : {'$avg' : '$used'}}}, {'$sort': {"_id.relation_length": 1}}]))
+    for rec in gold_agg:
+        if rec['_id']['relation_length'] != 3:
+            print(rec['_id']['relation_length'], '\t', rec['_id']['f_comb'], '\t', rec['avg'])
+
+    mturk_c_2 = data.mturk.count_documents({'relation_length':2})
+    #gold_c_2_u = list(data.gold.aggregate([{'$group': {'_id':None,'relation_length':2, 'avg' : {'$avg' : '$used'}}}]))[0]['avg']
+
+    mturk_c_3 = data.mturk.count_documents({'relation_length':3})
+    #gold_c_3_u = list(data.gold.aggregate([{'$group': {'_id':None,'relation_length':3, 'avg' : {'$avg' : '$used'}}}]))[0]['avg']
     print("Number of gold data : {} \n ".format(gold_c) +
           "Number of pending rows to annotate : {} \n ".format(pending_c) +
           "Average times each gold row has been used : {} \n ".format(avg_used) +
           "Number of annotations given : {} \n".format(mturk_c) +
-          "Unique workers : {}".format(uniq_workers))
+          "Unique workers : {}\n".format(uniq_workers) + 
+          "Number of 1 relations annotated : {}\n".format(mturk_c_1) +  
+          "Number of 2 relations annotated : {}\n".format(mturk_c_2) + 
+          "Number of 3 relations annotated : {}\n".format(mturk_c_3))
 
 def update_genders():
     data = DB(port=PORT)
-    data.update_gender('/Users/koustuvs/mlp/clutrr-2.0/amt_gold_gender.csv')
+    data.update_gender('/private/home/koustuvs/mlp/clutrr-2.0/amt_gold_gender.csv')
     data.close_connections()
 
 def test_get_gold(k=100):
@@ -319,7 +339,6 @@ def test_get_gold(k=100):
 
 
 if __name__ == '__main__':
-    '''
     import_job()
     export_job()
     info_job()
@@ -335,3 +354,4 @@ if __name__ == '__main__':
         time.sleep(1)
     '''
     update_genders()
+    '''
