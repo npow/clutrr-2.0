@@ -10,6 +10,7 @@ import os
 import json
 import shutil
 import sys
+from nltk.tokenize import word_tokenize
 
 logPath = '../logs/'
 fileName = 'data'
@@ -180,11 +181,18 @@ class Clutrr:
         for fl in all_files:
             logger.info("Analyzing file {}".format(fl))
             df = pd.read_csv(fl)
-            uniq_patterns = len(df['f_comb'].value_counts())
-            logger.info("-> {} rows".format(len(df)))
-            logger.info("-> {} unique patterns".format(uniq_patterns))
-            if '_train' in fl:
-                logger.info(df['f_comb'].value_counts().to_string())
+            df['word_len'] = df.story.apply(lambda x: len(word_tokenize(x)))
+            df['word_len_clean'] = df.clean_story.apply(lambda x: len(word_tokenize(x)))
+            print("Max words : ", df.word_len.max())
+            print("Min words : ", df.word_len.min())
+            print("For clean story : ")
+            print("Max words : ", df.word_len_clean.max())
+            print("Min words : ", df.word_len_clean.min())
+            #uniq_patterns = len(df['f_comb'].value_counts())
+            #logger.info("-> {} rows".format(len(df)))
+            #logger.info("-> {} unique patterns".format(uniq_patterns))
+            #if '_train' in fl:
+            #    logger.info(df['f_comb'].value_counts().to_string())
         logger.info("Analysis complete")
 
     def keep_unique(self, directory, num=1):

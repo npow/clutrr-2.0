@@ -282,15 +282,19 @@ class RelationBuilder:
         for puzzle_id, puzzle in self.puzzles.items():
             if self.args.noise_support:
                 # Supporting facts
+                # A <-> B <-> C ==> A <-> D <-> C , A <-> D <-> B <-> C
                 story = puzzle['story']
                 extra_story = []
                 for se in story:
-                    e = self.expand_new(se)
-                    if e:
-                        if puzzle['edge'] not in e and len(set(e).intersection(set(story))) == 0 and len(set(e).intersection(set(extra_story))) == 0:
-                            extra_story.extend(e)
+                    e_pair = self.expand_new(se)
+                    if e_pair:
+                        if puzzle['edge'] not in e_pair and len(set(e_pair).intersection(set(story))) == 0 and len(set(e_pair).intersection(set(extra_story))) == 0:
+                            extra_story.extend(e_pair)
                 if len(extra_story) == 0:
                     mark_ids_for_deletion.append(puzzle_id)
+                # choose a sample of 1 to k-1 edge pairs
+                num_edges = random.choice(range(1, (len(story) // 2) + 1))
+                extra_story = random.sample(extra_story, min(num_edges, len(extra_story)))
                 self.puzzles[puzzle_id]['fact_1'] = extra_story
             if self.args.noise_irrelevant:
                 # Irrelevant facts
@@ -310,6 +314,9 @@ class RelationBuilder:
                         sampled_edge = random.choice(story)
                 if len(extra_story) == 0:
                     mark_ids_for_deletion.append(puzzle_id)
+                # add a length restriction so as to not create super long text
+                # length restriction should be k+1 than the current k
+                extra_story = random.sample(extra_story, min(len(extra_story), len(story) // 2))
                 self.puzzles[puzzle_id]['fact_2'] = extra_story
             if self.args.noise_disconnected:
                 # Disconnected facts
@@ -317,8 +324,8 @@ class RelationBuilder:
                 nodes_story = set([y for x in list(story) for y in x])
                 nodes_not_in_story = set(self.anc.family_data.keys()) - nodes_story
                 possible_edges = [(x,y) for x,y in it.combinations(list(nodes_not_in_story), 2) if (x,y) in self.anc.family]
-                num_edges = random.choice(range(1, len(possible_edges)))
-                possible_edges = random.sample(possible_edges, num_edges)
+                num_edges = random.choice(range(1, (len(story) // 2) + 1))
+                possible_edges = random.sample(possible_edges, min(num_edges, len(possible_edges)))
                 if len(possible_edges) == 0:
                     mark_ids_for_deletion.append(puzzle_id)
                 self.puzzles[puzzle_id]['fact_3'] = possible_edges

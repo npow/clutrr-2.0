@@ -71,7 +71,7 @@ def generate_rows(args, store, task_name):
     pb = tqdm(total=args.num_rows)
     num_stories = args.num_rows
     stories_left = num_stories
-    columns = ['id', 'story', 'query', 'text_query', 'target', 'text_target', 'clean_story', 'proof_state', 'f_comb', 'task_name', 'story_edges','edge_types','query_edge','genders', 'templated_story']
+    columns = ['id', 'story', 'query', 'text_query', 'target', 'text_target', 'clean_story', 'proof_state', 'f_comb', 'task_name', 'story_edges','edge_types','query_edge','genders', 'syn_story']
     f_comb_count = {}
     rows = []
     anc_num = 0
@@ -181,9 +181,13 @@ def generate_rows(args, store, task_name):
             if stories_left < 0:
                 break
 
+            syn_story = ''
+            if args.use_mturk_template:
+                syn_story = story
+                story = ' '.join(templated_rows)
             rows.append([pid, story, puzzle['query_text'], text_question, puzzle['target'], puzzle['text_target'],
                          clean_story, puzzle['proof'], puzzle['f_comb'], task_name, story_keys_changed_id,
-                         story_key_edges, query_edge, genders, ' '.join(templated_rows)])
+                         story_key_edges, query_edge, genders, syn_story])
             pb.update(1)
         rb.reset_puzzle()
         rb.anc.next_flip()
