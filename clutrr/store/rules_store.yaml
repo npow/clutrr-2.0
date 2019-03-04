@@ -27,7 +27,7 @@ compositional:
       child: grand
       SO: in-law
       sibling: child
-      inv-child: sibling
+      inv-un: sibling
       inv-grand: inv-child
     inv-child:
       child: sibling
