@@ -124,8 +124,8 @@ class Clutrr:
                 split = int(len(f_combs) * (1 - args.test_split))
                 f_comb_train = f_combs[:split]
                 f_comb_test = f_combs[split:]
-                logger.info("patterns in train", len(f_comb_train))
-                logger.info("patterns in test", len(f_comb_test))
+                logger.info("patterns in train : {}".format(len(f_comb_train)))
+                logger.info("patterns in test : {}".format(len(f_comb_test)))
                 holdout.append(tdf[tdf['f_comb'].isin(f_comb_test)])
                 tdf = tdf[tdf['f_comb'].isin(f_comb_train)]
             train_df.append(tdf)

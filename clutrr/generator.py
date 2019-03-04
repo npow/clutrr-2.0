@@ -26,7 +26,7 @@ class TemplateUser:
         self.entity_id_dict = {}
         self.seen_ent = set()
 
-    def choose_template(self, f_comb, entities):
+    def choose_template(self, f_comb, entities, verbose=False):
         """
         Choose a template to use. Do not use the same template in this current context
         :return:
@@ -41,6 +41,10 @@ class TemplateUser:
                 self.seen_ent.add(ent)
                 self.entity_id_dict[ent] = len(self.entity_id_dict)
         gender_comb = '-'.join(gender_comb)
+        if verbose:
+            print(f_comb)
+            print(gender_comb)
+            print(len(self.templates[f_comb][gender_comb]))
         if len(self.templates[f_comb][gender_comb]) == 0:
             raise NotImplementedError("template combination not found.")
         available_templates = self.templates[f_comb][gender_comb]
@@ -52,8 +56,8 @@ class TemplateUser:
         return chosen_template
 
 
-    def replace_template(self, f_comb, entities):
-        chosen_template = self.choose_template(f_comb, entities)
+    def replace_template(self, f_comb, entities, verbose=False):
+        chosen_template = self.choose_template(f_comb, entities, verbose=verbose)
 
         for ent_id, ent in enumerate(list(set(entities))):
             node = self.family[ent]
@@ -136,6 +140,14 @@ def generate_rows(args, store, task_name):
                         except:
                             pass
                     #print(len(temp_rows))
+                    if len(temp_rows) == 0:
+                        print(group_combs)
+                        print(all_edge_rows)
+                        print(seq)
+                        fcombs = ['-'.join([rb.get_edge_relation(edge) for edge in edge_group]) for edge_group in group]
+                        fentities = [[ent for edge in edge_group for ent in edge] for edge_group in group]
+                        prows = [temp_user.replace_template(edge_group, fentities[group_id], verbose=True)
+                                 for group_id, edge_group in enumerate(fcombs)]
                     chosen_row = random.choice(temp_rows)
                     #print('chosen row', chosen_row)
                     templated_rows.append(chosen_row)
