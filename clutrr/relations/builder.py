@@ -288,36 +288,48 @@ class RelationBuilder:
                 for se in story:
                     e_pair = self.expand_new(se)
                     if e_pair:
-                        if puzzle['edge'] not in e_pair and len(set(e_pair).intersection(set(story))) == 0 and len(set(e_pair).intersection(set(extra_story))) == 0:
-                            extra_story.extend(e_pair)
+                        if puzzle['edge'] not in e_pair:
+                            extra_story.append(tuple(e_pair))
                 if len(extra_story) == 0:
                     mark_ids_for_deletion.append(puzzle_id)
-                # choose a sample of 1 to k-1 edge pairs
-                num_edges = random.choice(range(1, (len(story) // 2) + 1))
-                extra_story = random.sample(extra_story, min(num_edges, len(extra_story)))
+                else:
+                    # choose a sample of 1 to k-1 edge pairs
+                    num_edges = random.choice(range(1, (len(story) // 2) + 1))
+                    extra_story = random.sample(extra_story, min(num_edges, len(extra_story)))
+                    # untuple the extra stories
+                    extra_story = [k for e in extra_story for k in e]
+                    self._test_supporting(story, extra_story)
                 self.puzzles[puzzle_id]['fact_1'] = extra_story
             if self.args.noise_irrelevant:
                 # Irrelevant facts
+                # A <-> B <-> C ==> A <-> D <-> E
+                # Must have only one common node with the story
                 story = puzzle['story']
                 num_edges = len(story)
                 sampled_edge = random.choice(story)
                 extra_story = []
                 for i in range(num_edges):
                     tmp = sampled_edge
+                    seen_pairs = set()
                     pair = self.expand_new(sampled_edge)
                     if pair:
-                        for e in pair:
-                            if e != puzzle['edge']:
-                                extra_story.append(e)
-                                sampled_edge = e
-                    if tmp == sampled_edge:
-                        sampled_edge = random.choice(story)
+                        while len(extra_story) == 0 and (tuple(pair) not in seen_pairs):
+                            seen_pairs.add(tuple(pair))
+                            for e in pair:
+                                if e != puzzle['edge'] and not self._subset(story, [e], k=2):
+                                    extra_story.append(e)
+                                    sampled_edge = e
+                                    break
+                        if tmp == sampled_edge:
+                            sampled_edge = random.choice(story)
                 if len(extra_story) == 0:
                     mark_ids_for_deletion.append(puzzle_id)
-                # add a length restriction so as to not create super long text
-                # length restriction should be k+1 than the current k
-                extra_story = random.sample(extra_story, min(len(extra_story), len(story) // 2))
-                self.puzzles[puzzle_id]['fact_2'] = extra_story
+                else:
+                    # add a length restriction so as to not create super long text
+                    # length restriction should be k+1 than the current k
+                    extra_story = random.sample(extra_story, min(len(extra_story), len(story) // 2))
+                    self._test_irrelevant(story, extra_story)
+                    self.puzzles[puzzle_id]['fact_2'] = extra_story
             if self.args.noise_disconnected:
                 # Disconnected facts
                 story = puzzle['story']
@@ -328,6 +340,7 @@ class RelationBuilder:
                 possible_edges = random.sample(possible_edges, min(num_edges, len(possible_edges)))
                 if len(possible_edges) == 0:
                     mark_ids_for_deletion.append(puzzle_id)
+                self._test_disconnected(story, possible_edges)
                 self.puzzles[puzzle_id]['fact_3'] = possible_edges
             # TODO: problem for generating clean graphs task 6
             # solution here is to add an edge considering the entity "Facebook" an actor
@@ -554,5 +567,62 @@ class RelationBuilder:
         """
         for e_i in range(len(story) - 1):
             assert story[e_i][-1] == story[e_i + 1][0]
+
+    def _flatten_tuples(self, story):
+        return list(sum(story, ()))
+
+    def _unique_nodes(self, story):
+        return set(self._flatten_tuples(story))
+
+    def _subset(self, story, fact, k=2):
+        """
+        Whether at least k fact nodes are present in a given story
+        :param story:
+        :param fact:
+        :return:
+        """
+        all_entities = self._unique_nodes(story)
+        all_fact_entities = self._unique_nodes(fact)
+        return len(all_entities.intersection(all_fact_entities)) >= k
+
+
+    def _test_disconnected(self, story, fact):
+        """
+        Given a story and the fact, check whether the fact is a disconnected fact
+        If irrelevant, then there would be no node match between story and fact
+        :param story: Array of tuples
+        :param fact: Array of tuples
+        :return:
+        """
+        all_entities = self._unique_nodes(story)
+        all_fact_entities = self._unique_nodes(fact)
+        assert len(all_entities.intersection(all_fact_entities)) == 0
+
+    def _test_irrelevant(self, story, fact):
+        """
+        Given a story and the fact, check whether the fact is a irrelevant fact
+        If irrelevant, then there would be exactly one node match between story and fact
+        :param story: Array of tuples
+        :param fact: Array of tuples
+        :return:
+        """
+        all_entities = self._unique_nodes(story)
+        all_fact_entities = self._unique_nodes(fact)
+        assert len(all_entities.intersection(all_fact_entities)) == 1
+
+    def _test_supporting(self, story, fact):
+        """
+        Given a story and the fact, check whether the fact is a irrelevant fact
+        If irrelevant, then there would be >= 2 node match between story and fact
+        :param story: Array of tuples
+        :param fact: Array of tuples
+        :return:
+        """
+        all_entities = self._unique_nodes(story)
+        all_fact_entities =self._unique_nodes(fact)
+        assert len(all_entities.intersection(all_fact_entities)) >= 2
+
+
+
 
 
