@@ -269,15 +269,16 @@ class Clutrr:
         args.output += '_task5'
         return args
 
-    def task_6(self, args):
-        """
-        Family relation with random attributes (v0.1 setup)
-        """
-        args.noise_attributes = True
-        args.output += '_task6'
-        return args
+    # Deprecated task
+    # def task_6(self, args):
+    #     """
+    #     Family relation with random attributes (v0.1 setup)
+    #     """
+    #     args.noise_attributes = True
+    #     args.output += '_task6'
+    #     return args
 
-    def task_7(self, args):
+    def task_6(self, args):
         """
         Family relation with only memory retrieval
         :param args:
@@ -287,7 +288,7 @@ class Clutrr:
         args.output += '_task7'
         return args
 
-    def task_8(self, args):
+    def task_7(self, args):
         """
         Family relation with mixed memory and reasoning
         :param args:

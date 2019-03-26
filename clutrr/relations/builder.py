@@ -342,23 +342,24 @@ class RelationBuilder:
                     mark_ids_for_deletion.append(puzzle_id)
                 self._test_disconnected(story, possible_edges)
                 self.puzzles[puzzle_id]['fact_3'] = possible_edges
+            # Future work
             # TODO: problem for generating clean graphs task 6
             # solution here is to add an edge considering the entity "Facebook" an actor
-            if self.args.noise_attributes:
-                num_attr = random.choice(range(1, len(self.store.attribute_store)+1))
-                story = puzzle['story']
-                ents = [se[0] for se in story]
-                ents.append(story[-1][-1])
-                noise = {}
-                extra_ent_id = len(self.anc.family_data)
-                extra_ents = {}
-                for ent in ents:
-                    node = self.anc.family_data[ent]
-                    n_att = [v for k,v in node.attributes.items()]
-                    chosen_noises = random.sample(n_att, num_attr)
-                    noisy_edges = {(node.node_id, extra_ent_id + i):cn for i,cn in enumerate(chosen_noises)}
-                    noise.update(noisy_edges)
-                self.puzzles[puzzle_id]['text_fact_4'] = noise
+            # if self.args.noise_attributes:
+            #     num_attr = random.choice(range(1, len(self.store.attribute_store)+1))
+            #     story = puzzle['story']
+            #     ents = [se[0] for se in story]
+            #     ents.append(story[-1][-1])
+            #     noise = {}
+            #     extra_ent_id = len(self.anc.family_data)
+            #     extra_ents = {}
+            #     for ent in ents:
+            #         node = self.anc.family_data[ent]
+            #         n_att = [v for k,v in node.attributes.items()]
+            #         chosen_noises = random.sample(n_att, num_attr)
+            #         noisy_edges = {(node.node_id, extra_ent_id + i):cn for i,cn in enumerate(chosen_noises)}
+            #         noise.update(noisy_edges)
+            #     self.puzzles[puzzle_id]['text_fact_4'] = noise
         # remove puzzles which cannot be added a fact / noise
         for id in mark_ids_for_deletion:
             del self.puzzles[id]
