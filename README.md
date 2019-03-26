@@ -1,4 +1,4 @@
-## CLUTRR
+# CLUTRR
 
 **C**ompositional **L**anguage **U**nderstanding with **T**ext-based **R**elational **R**easoniong
 
@@ -9,6 +9,10 @@ A benchmark dataset generator to test relational reasoning on text
 - [pandas](https://pypi.org/project/pandas/) - to store and retrieve in csv
 - [names](https://pypi.org/project/names/) - to generate fancy names
 - [tqdm](https://pypi.org/project/tqdm/) - for fancy progressbars
+
+## Install
+
+`python setup.py develop`
 
 ## Tasks
 
