@@ -9,7 +9,7 @@ def get_args():
     parser.add_argument("--max_levels", default=3, type=int, help="max number of levels")
     parser.add_argument("--min_child", default=4, type=int, help="max number of children per node")
     parser.add_argument("--max_child", default=4, type=int, help="max number of children per node")
-    parser.add_argument("--max_names", default=1000, type=int, help="max number of names to use")
+    parser.add_argument("--max_names", default=50, type=int, help="max number of names to use")
     parser.add_argument("--p_marry", default=1.0, type=float, help="Probability of marriage among nodes")
     # story parameters
     parser.add_argument("--abstracts", default=1, type=int, help="Abstract lines per relation")

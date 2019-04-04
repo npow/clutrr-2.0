@@ -40,19 +40,20 @@ class Ancestry:
         self.node_ct = 0
         self.flipped = [] # track of nodes which are gender flipped
         self.taken_names = taken_names if taken_names else copy.deepcopy(self.store.attr_names) # keep track of names which are already taken
-        self.simulate()
         self.names = {'male': [], 'female': []}
-        #self.add_work_relations()
         self._initialize_names()
+        self.simulate()
+        #self.add_work_relations()
 
     def _initialize_names(self):
+        taken_names = set(self.taken_names)
         for gender in ['male', 'female']:
-            names = set()
-            while len(names) < self.max_names:
+            generated_names = set()
+            while len(generated_names) < self.max_names:
                 name = names.get_first_name(gender=gender)
-                if name not in self.taken_names:
-                    names.add(name)
-            self.names[gender] = list(names)
+                if name not in taken_names:
+                    generated_names.add(name)
+            self.names[gender] = list(generated_names)
 
     def simulate(self):
         """
@@ -90,7 +91,7 @@ class Ancestry:
             parents = generation_nodes
 
     def get_first_name(self, gender):
-        return np.random.choice(self.names[gender], 1)
+        return np.random.choice(self.names[gender], 1)[0]
 
     def add_members(self, gender='male', num=1):
         """
