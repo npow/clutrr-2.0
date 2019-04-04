@@ -33,6 +33,7 @@ class Ancestry:
         self.max_levels = args.max_levels
         self.min_child = args.min_child
         self.max_child = args.max_child
+        self.max_names = args.max_names
         self.p_marry = args.p_marry
         self.relationship_type = relationship_type
         self.levels = 0 # keep track of the levels
@@ -40,7 +41,18 @@ class Ancestry:
         self.flipped = [] # track of nodes which are gender flipped
         self.taken_names = taken_names if taken_names else copy.deepcopy(self.store.attr_names) # keep track of names which are already taken
         self.simulate()
+        self.names = {'male': [], 'female': []}
         #self.add_work_relations()
+        self._initialize_names()
+
+    def _initialize_names(self):
+        for gender in ['male', 'female']:
+            names = set()
+            while len(names) < self.max_names:
+                name = names.get_first_name(gender=gender)
+                if name not in self.taken_names:
+                    names.add(name)
+            self.names[gender] = list(names)
 
     def simulate(self):
         """
@@ -77,7 +89,8 @@ class Ancestry:
                         generation_nodes.extend(child_nodes)
             parents = generation_nodes
 
-
+    def get_first_name(self, gender):
+        return np.random.choice(self.names[gender], 1)
 
     def add_members(self, gender='male', num=1):
         """
@@ -92,9 +105,9 @@ class Ancestry:
             if num > 1:
                 gender = random.choice(['male', 'female'])
             # select a name that is not taken
-            name = names.get_first_name(gender=gender)
+            name = self.get_first_name(gender=gender)
             while name in self.taken_names:
-                name = names.get_first_name(gender=gender)
+                name = self.get_first_name(gender=gender)
             self.taken_names.add(name)
             node = Actor(
                 name=name, gender=gender, node_id=node_id, store=self.store)
@@ -168,7 +181,7 @@ class Ancestry:
                 # choose a new gender appropriate name
                 gender = self.family_data[node].gender
                 while name in self.taken_names:
-                    name = names.get_first_name(gender=gender)
+                    name = self.get_first_name(gender=gender)
                 self.family_data[node].name = name
                 self.flipped.append(node)
                 #print("flipping singles ...")
